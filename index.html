@@ -733,7 +733,7 @@ function renderTopbar(){
   // 孩子选择
   const sel = $('childSelect');
   sel.innerHTML = state.children.map(c=>`<option value="${c.id}" ${c.id===state.currentChildId?'selected':''}>${c.name}</option>`).join('');
-  sel.onchange = ()=>{ state.currentChildId=sel.value; state.isParent=false; state.currentView='home'; saveState(); render(); };
+  sel.onchange = ()=>{ state.currentChildId=sel.value; state.currentView='home'; saveState(); render(); };
   $('statSun').textContent = child.sun;
   const prog = getProgress(child);
   $('progressFill').style.width = prog+'%';
@@ -793,24 +793,34 @@ function renderMain(){
   const child = getChild();
   if(!child){ area.innerHTML='<p>请先添加孩子</p>'; return; }
 
+  // 家长模式下非家长面板，显示顶部提示条
+  let parentBar = '';
+  if(state.isParent && view!=='parent'){
+    parentBar = `<div style="background:linear-gradient(135deg,#FF6F00,#FF8F00);color:#fff;padding:8px 12px;border-radius:10px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:13px;box-shadow:var(--shadow)">
+      <span>👨‍👩‍👧 家长查看模式 · 当前查看：<b>${child.name}</b></span>
+      <span style="flex:1"></span>
+      <button onclick="navTo('parent')" style="border:none;border-radius:6px;background:#fff;color:#FF6F00;padding:4px 10px;font-size:12px;font-weight:bold;cursor:pointer">返回编辑</button>
+    </div>`;
+  }
+
   if(view==='home'){
-    area.innerHTML = renderHome(child);
+    area.innerHTML = parentBar + renderHome(child);
   } else if(view==='garden'){
-    area.innerHTML = renderGarden(child);
+    area.innerHTML = parentBar + renderGarden(child);
     bindGarden(child);
   } else if(view==='shop'){
-    area.innerHTML = renderShop(child);
+    area.innerHTML = parentBar + renderShop(child);
     bindShop(child);
   } else if(view==='badge'){
-    area.innerHTML = renderBadges(child);
+    area.innerHTML = parentBar + renderBadges(child);
   } else if(view==='log'){
-    area.innerHTML = renderLog(child);
+    area.innerHTML = parentBar + renderLog(child);
   } else if(view==='parent'){
     area.innerHTML = renderParentPanel(child);
     bindParentPanel(child);
   } else {
     // 作业分类
-    area.innerHTML = renderTaskList(child, view) + renderGardenMini(child);
+    area.innerHTML = parentBar + renderTaskList(child, view) + renderGardenMini(child);
     bindTasks(child, view);
   }
 }
@@ -1167,8 +1177,10 @@ function renderParentPanel(child){
     </div>
     <div class="child-manage" style="margin-bottom:16px">`;
   state.children.forEach(c=>{
-    html += `<span class="child-chip">${c.name} (${c.sun}☀️)
-      <span class="x" onclick="delChild('${c.id}')" ${state.children.length<=1?'style="display:none"':''}>✕</span>
+    const cur = c.id===state.currentChildId;
+    html += `<span class="child-chip" onclick="switchChildForParent('${c.id}')" style="cursor:pointer;${cur?'border-color:var(--accent);background:#FFF3E0;font-weight:bold':''}">
+      ${c.name} (${c.sun}☀️)
+      <span class="x" onclick="event.stopPropagation();delChild('${c.id}')" ${state.children.length<=1?'style="display:none"':''}>✕</span>
     </span>`;
   });
   html += `</div>
@@ -1239,6 +1251,8 @@ function renderParentPanel(child){
   });
   html += `</table>
 
+    <p style="font-size:12px;color:#888;margin-top:10px">💡 点击上方孩子名字可切换当前编辑对象，也可通过顶部下拉切换查看不同孩子。</p>
+
     <div style="margin-top:16px">
       <button class="danger" onclick="exitParent()">退出家长模式</button>
     </div>
@@ -1265,6 +1279,14 @@ function delChild(id){
   saveState(); render();
 }
 window.delChild = delChild;
+
+function switchChildForParent(id){
+  state.currentChildId = id;
+  saveState(); render();
+  const c = state.children.find(x=>x.id===id);
+  if(c) toast(`已切换到：${c.name}`);
+}
+window.switchChildForParent = switchChildForParent;
 
 function addTask(){
   const child = getChild();
