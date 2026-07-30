@@ -180,6 +180,8 @@ body{ font-size:15px; }
 .task-item.done .btn-done{ background:var(--primary); color:#fff; cursor:default; }
 .task-item .btn-del{ border:none; background:transparent; color:#999; font-size:16px; cursor:pointer; padding:4px; }
 .task-item .btn-del:hover{ color:var(--danger); }
+.task-item .btn-edit{ border:none; background:transparent; color:#1976D2; font-size:16px; cursor:pointer; padding:4px; }
+.task-item .btn-edit:hover{ color:#0D47A1; }
 
 /* 商店 */
 .shop-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
@@ -325,6 +327,41 @@ body{ font-size:15px; }
     <div class="btn-row">
       <button class="btn-cancel" onclick="closePwdModal()">取消</button>
       <button class="btn-ok" onclick="checkPwd()">进入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑作业模态框 -->
+<div class="modal-overlay" id="editTaskModal">
+  <div class="modal" style="max-width:420px">
+    <h3>✏️ 编辑作业</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:12px;color:#888">作业名称</label>
+        <input type="text" id="editTaskTitle" style="width:100%;margin-top:2px">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888">描述（选填）</label>
+        <input type="text" id="editTaskDesc" style="width:100%;margin-top:2px">
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1">
+          <label style="font-size:12px;color:#888">类型</label>
+          <select id="editTaskType" style="width:100%;margin-top:2px;padding:8px;border:1px solid #ccc;border-radius:8px">
+            <option value="normal">日常</option>
+            <option value="read">阅读</option>
+            <option value="test">小测试</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label style="font-size:12px;color:#888">阳光奖励（自定义）</label>
+          <input type="number" id="editTaskReward" min="1" max="999" style="width:100%;margin-top:2px">
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeEditTaskModal()">取消</button>
+      <button class="btn-ok" onclick="saveEditTask()">保存修改</button>
     </div>
   </div>
 </div>
@@ -960,7 +997,10 @@ function renderTaskList(child, cat){
       html += `<button class="btn-undo" onclick="undoTask('${cat}','${t.title.replace(/'/g,"\\'")}')">↩️撤销</button>`;
     }
     html += `<button class="btn-done" ${done?'disabled':''} onclick="doTask(${i},'${cat}')">${done?'✓':'√'}</button>`;
-    if(state.isParent) html += `<button class="btn-del" onclick="delTask('${cat}',${i})">✕</button>`;
+    if(state.isParent){
+      html += `<button class="btn-edit" onclick="editTask('${cat}',${i})">✏️</button>`;
+      html += `<button class="btn-del" onclick="delTask('${cat}',${i})">✕</button>`;
+    }
     html += `</div>`;
   });
   html += `</div></div>`;
@@ -1000,6 +1040,56 @@ function delTask(cat, idx){
   render();
 }
 window.delTask = delTask;
+
+let editingTask = null; // {cat, idx}
+function editTask(cat, idx){
+  const child = getChild();
+  const t = child.tasks[cat][idx];
+  if(!t) return;
+  editingTask = {cat, idx};
+  $('editTaskTitle').value = t.title;
+  $('editTaskDesc').value = t.desc || '';
+  $('editTaskType').value = t.type;
+  $('editTaskReward').value = t.reward;
+  $('editTaskModal').classList.add('show');
+}
+window.editTask = editTask;
+
+function closeEditTaskModal(){
+  $('editTaskModal').classList.remove('show');
+  editingTask = null;
+}
+window.closeEditTaskModal = closeEditTaskModal;
+
+function saveEditTask(){
+  if(!editingTask) return;
+  const child = getChild();
+  const t = child.tasks[editingTask.cat][editingTask.idx];
+  if(!t){ closeEditTaskModal(); return; }
+  const title = $('editTaskTitle').value.trim();
+  const desc = $('editTaskDesc').value.trim();
+  const type = $('editTaskType').value;
+  const reward = parseInt($('editTaskReward').value);
+  if(!title){ toast('请输入作业名称'); return; }
+  if(!reward || reward<1){ toast('阳光奖励需大于0'); return; }
+  // 如果改了标题且该作业已完成，需要同步 claimedToday 的 key
+  const oldKey = taskKey(t);
+  t.title = title;
+  t.desc = desc;
+  t.type = type;
+  t.reward = reward;
+  const newKey = taskKey(t);
+  if(oldKey !== newKey && child.claimedToday[oldKey]){
+    child.claimedToday[newKey] = child.claimedToday[oldKey];
+    child.claimedToday[newKey].title = title;
+    delete child.claimedToday[oldKey];
+  }
+  saveState();
+  closeEditTaskModal();
+  render();
+  toast('✏️ 作业已修改');
+}
+window.saveEditTask = saveEditTask;
 
 function bindTasks(){ /* onclick已内联 */ }
 
@@ -1305,12 +1395,16 @@ function renderParentPanel(child){
       </select>
       <input type="text" id="newTaskTitle" placeholder="作业名称">
       <input type="text" id="newTaskDesc" placeholder="描述（选填）" style="max-width:150px">
-      <select id="newTaskType">
-        <option value="normal">日常(10☀️)</option>
-        <option value="read">阅读(50☀️)</option>
-        <option value="test">小测试(20☀️)</option>
+      <select id="newTaskType" onchange="autoFillReward()">
+        <option value="normal">日常</option>
+        <option value="read">阅读</option>
+        <option value="test">小测试</option>
       </select>
+      <input type="number" id="newTaskReward" placeholder="阳光" min="1" max="999" value="10" style="max-width:70px" title="自定义阳光奖励">
       <button onclick="addTask()">➕ 添加</button>
+    </div>
+    <div style="margin-top:6px;font-size:11px;color:#888">
+      💡 类型参考：日常默认10☀️、阅读50☀️、小测试20☀️（含全对额外10），阳光值可自定义
     </div>
 
     <div style="margin-top:6px;font-size:12px;color:#888">
@@ -1403,16 +1497,24 @@ function addTask(){
   const title = $('newTaskTitle').value.trim();
   const desc = $('newTaskDesc').value.trim();
   const type = $('newTaskType').value;
+  let reward = parseInt($('newTaskReward').value);
   if(!title){ toast('请输入作业名称'); return; }
-  const reward = type==='read'?50:type==='test'?20:10;
+  if(!reward || reward<1) reward = type==='read'?50:type==='test'?20:10;
   const icons = {chinese:'📖',math:'🔢',english:'🔤',sport:'⚽',house:'🏠'};
   child.tasks[cat].push({icon:icons[cat],title,cat,type,reward,desc});
   saveState();
   $('newTaskTitle').value=''; $('newTaskDesc').value='';
   render();
-  toast(`已添加：${title}`);
+  toast(`已添加：${title}（${reward}☀️）`);
 }
 window.addTask = addTask;
+
+function autoFillReward(){
+  const type = $('newTaskType').value;
+  const defaults = {normal:10, read:50, test:20};
+  $('newTaskReward').value = defaults[type];
+}
+window.autoFillReward = autoFillReward;
 
 function changePwd(){
   const pwd = $('newPwd').value.trim();
