@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🌱 暑假学习大作战 · 工作台</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root{
+  --grass1:#7CB342; --grass2:#689F38; --grass-dark:#33691E;
+  --sun:#FFB300; --sun-glow:#FFD54F;
+  --danger:#e53935; --danger-dark:#b71c1c;
+  --bg:#E8F5E9; --card:#fff; --text:#2E7D32; --text-dark:#1B5E20;
+  --primary:#43A047; --primary-dark:#2E7D32;
+  --sidebar:#1B5E20; --sidebar-text:#C8E6C9;
+  --accent:#FF6F00; --badge:#FFD700;
+  --shadow:0 2px 8px rgba(0,0,0,.15);
+  --radius:14px;
+}
+html,body{ font-family:'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif; background:linear-gradient(180deg,#a5d6a7,#66bb6a); color:var(--text-dark); min-height:100vh; overflow-x:hidden; }
+body{ font-size:15px; }
+
+/* 顶部状态栏 */
+.topbar{ position:sticky; top:0; z-index:100; background:linear-gradient(135deg,#2E7D32,#1B5E20); color:#fff; padding:8px 12px; box-shadow:0 3px 10px rgba(0,0,0,.3); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.topbar .child-selector{ display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.15); border-radius:20px; padding:4px 10px; }
+.topbar select{ background:transparent; border:none; color:#fff; font-size:15px; font-weight:bold; cursor:pointer; }
+.topbar select option{ color:#1B5E20; }
+.topbar .stat{ display:flex; flex-direction:column; align-items:center; min-width:62px; background:rgba(255,255,255,.12); border-radius:10px; padding:4px 8px; }
+.topbar .stat .v{ font-size:20px; font-weight:bold; line-height:1.1; }
+.topbar .stat .l{ font-size:10px; opacity:.85; }
+.topbar .stat.sun .v{ color:var(--sun-glow); }
+.topbar .stat.zombie .v{ color:#ff5252; }
+.topbar .spacer{ flex:1; }
+.topbar .btn-parent{ background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff; border-radius:20px; padding:6px 12px; font-size:13px; cursor:pointer; }
+.topbar .btn-parent.active{ background:var(--accent); border-color:var(--accent); }
+
+/* 进度条 */
+.progress-wrap{ display:flex; align-items:center; gap:6px; min-width:90px; }
+.progress-bar{ flex:1; height:12px; background:rgba(255,255,255,.2); border-radius:6px; overflow:hidden; }
+.progress-bar .fill{ height:100%; background:linear-gradient(90deg,#FFD54F,#FFB300); border-radius:6px; transition:width .5s; }
+.progress-wrap .pct{ font-size:11px; font-weight:bold; min-width:30px; }
+
+/* 布局 */
+.layout{ display:flex; min-height:calc(100vh - 56px); }
+
+/* 左侧工具栏 */
+.sidebar{ width:170px; background:var(--sidebar); color:var(--sidebar-text); padding:8px 0; flex-shrink:0; overflow-y:auto; }
+.sidebar .nav-item{ display:flex; align-items:center; gap:8px; padding:11px 14px; cursor:pointer; border-left:4px solid transparent; transition:all .2s; font-size:14px; }
+.sidebar .nav-item:hover{ background:rgba(255,255,255,.08); }
+.sidebar .nav-item.active{ background:rgba(255,255,255,.12); border-left-color:var(--sun-glow); color:#fff; font-weight:bold; }
+.sidebar .nav-item .icon{ font-size:20px; }
+.sidebar .nav-section{ font-size:11px; text-transform:uppercase; opacity:.5; padding:8px 14px 4px; }
+.sidebar .nav-item .badge-count{ margin-left:auto; background:var(--danger); color:#fff; border-radius:10px; font-size:11px; padding:1px 6px; }
+
+/* 主区域 */
+.main{ flex:1; padding:12px; overflow-x:hidden; }
+
+/* CSS植物图标（跨平台可爱卡通风格） */
+.plant-icon{ display:inline-block; position:relative; width:28px; height:28px; vertical-align:middle; }
+.plant-icon>*{ position:absolute; }
+
+/* 向日葵 */
+.plant-sunflower .face{ width:22px; height:22px; background:#FFD700; border-radius:50%; top:3px; left:3px; }
+.plant-sunflower .petals{ position:absolute; width:26px; height:26px; background:repeating-conic-gradient(from 0deg,#FFAB00 0deg 20deg,#FFD54F 20deg 40deg); border-radius:50%; top:1px; left:1px; z-index:-1; }
+.plant-sunflower .eye{ width:4px; height:4px; background:#3E2723; border-radius:50%; top:10px; }
+.plant-sunflower .eye.l{ left:7px; }
+.plant-sunflower .eye.r{ right:7px; }
+.plant-sunflower .smile{ width:8px; height:4px; border-bottom:2px solid #3E2723; border-radius:0 0 8px 8px; top:14px; left:7px; }
+.plant-sunflower .stem{ width:4px; height:10px; background:#43A047; top:24px; left:12px; }
+
+/* 阳光菇 */
+.plant-shroom .cap{ width:24px; height:20px; background:#FDD835; border-radius:40px 40px 10px 10px; top:0; left:2px; }
+.plant-shroom .cap::after{ content:''; position:absolute; width:5px; height:5px; background:#fff; border-radius:50%; opacity:.7; top:5px; left:5px; }
+.plant-shroom .cap::before{ content:''; position:absolute; width:3px; height:3px; background:#fff; border-radius:50%; opacity:.7; top:8px; right:7px; }
+.plant-shroom .stem{ width:16px; height:10px; background:#E0E0E0; border-radius:0 0 10px 10px; top:18px; left:6px; }
+.plant-shroom .eye{ width:3px; height:3px; background:#3E2723; border-radius:50%; top:10px; }
+.plant-shroom .eye.l{ left:8px; }
+.plant-shroom .eye.r{ right:8px; }
+
+/* 豌豆射手 */
+.plant-pea .head{ width:20px; height:20px; background:#66BB6A; border-radius:50%; top:6px; left:8px; }
+.plant-pea .snout{ width:12px; height:10px; background:#43A047; border-radius:50%; top:11px; left:0; }
+.plant-pea .eye{ width:4px; height:4px; background:#fff; border-radius:50%; top:10px; }
+.plant-pea .eye.l{ left:12px; }
+.plant-pea .eye.r{ left:18px; }
+.plant-pea .eye::after{ content:''; position:absolute; width:2px; height:2px; background:#000; border-radius:50%; top:1px; left:1px; }
+
+/* 寒冰射手 */
+.plant-snowpea .head{ width:20px; height:20px; background:#4FC3F7; border-radius:50%; top:6px; left:8px; }
+.plant-snowpea .snout{ width:12px; height:10px; background:#039BE5; border-radius:50%; top:11px; left:0; }
+.plant-snowpea .eye{ width:4px; height:4px; background:#fff; border-radius:50%; top:10px; }
+.plant-snowpea .eye.l{ left:12px; }
+.plant-snowpea .eye.r{ left:18px; }
+.plant-snowpea .eye::after{ content:''; position:absolute; width:2px; height:2px; background:#000; border-radius:50%; top:1px; left:1px; }
+.plant-snowpea .frost{ position:absolute; width:24px; height:24px; border:2px dashed rgba(255,255,255,.6); border-radius:50%; top:4px; left:6px; }
+
+/* 樱桃炸弹 */
+.plant-cherry .berry{ width:14px; height:14px; background:#F44336; border-radius:50%; top:8px; }
+.plant-cherry .berry.l{ left:1px; }
+.plant-cherry .berry.r{ right:1px; }
+.plant-cherry .stem{ width:2px; height:8px; background:#5D4037; top:3px; left:13px; transform:rotate(-20deg); }
+.plant-cherry .eye{ width:3px; height:3px; background:#fff; border-radius:50%; top:11px; }
+.plant-cherry .eye.l{ left:4px; }
+.plant-cherry .eye.r{ right:4px; }
+
+/* 坚果墙 */
+.plant-wallnut .nut{ width:22px; height:20px; background:#8D6E63; border-radius:35%; top:5px; left:3px; border:2px solid #6D4C41; }
+.plant-wallnut .eye{ width:3px; height:3px; background:#3E2723; border-radius:50%; top:10px; }
+.plant-wallnut .eye.l{ left:8px; }
+.plant-wallnut .eye.r{ right:8px; }
+.plant-wallnut .mouth{ width:6px; height:3px; border-bottom:2px solid #3E2723; border-radius:0 0 6px 6px; top:14px; left:11px; }
+
+/* 火焰豌豆 */
+.plant-firepea .head{ width:20px; height:20px; background:#FF5722; border-radius:50%; top:6px; left:8px; }
+.plant-firepea .snout{ width:12px; height:10px; background:#BF360C; border-radius:50%; top:11px; left:0; }
+.plant-firepea .eye{ width:4px; height:4px; background:#fff; border-radius:50%; top:10px; }
+.plant-firepea .eye.l{ left:12px; }
+.plant-firepea .eye.r{ left:18px; }
+.plant-firepea .eye::after{ content:''; position:absolute; width:2px; height:2px; background:#000; border-radius:50%; top:1px; left:1px; }
+.plant-firepea .flame{ position:absolute; width:30px; height:30px; background:radial-gradient(circle,rgba(255,87,34,.3),transparent 70%); border-radius:50%; top:1px; left:3px; }
+
+/* 僵尸 */
+.zombie-icon{ display:inline-block; width:22px; height:26px; position:relative; }
+.zombie-icon .head{ width:18px; height:18px; background:#90A4AE; border-radius:8px 8px 10px 10px; top:0; left:2px; }
+.zombie-icon .eye{ width:5px; height:5px; background:#F44336; border-radius:50%; top:5px; }
+.zombie-icon .eye.l{ left:4px; }
+.zombie-icon .eye.r{ right:4px; }
+.zombie-icon .mouth{ width:10px; height:4px; background:#37474F; border-radius:0 0 8px 8px; top:11px; left:6px; }
+.zombie-icon .body{ width:14px; height:8px; background:#607D8B; border-radius:4px; top:18px; left:4px; }
+.zombie-icon .arm{ width:6px; height:3px; background:#607D8B; top:20px; }
+.zombie-icon .arm.l{ left:-2px; transform:rotate(-30deg); }
+.zombie-icon .arm.r{ right:-2px; transform:rotate(30deg); }
+
+/* 缩放 */
+.garden-cell .plant-icon{ transform:scale(1.2); }
+.shop-item .plant-icon{ transform:scale(1.4); margin:4px 0; }
+
+/* 顶部信息卡 */
+.info-cards{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.info-card{ background:var(--card); border-radius:var(--radius); padding:10px 14px; box-shadow:var(--shadow); flex:1; min-width:120px; text-align:center; }
+.info-card .ic-icon{ font-size:26px; }
+.info-card .ic-val{ font-size:22px; font-weight:bold; color:var(--primary-dark); }
+.info-card .ic-label{ font-size:12px; color:#666; }
+.info-card.holiday .ic-val{ color:var(--accent); }
+.info-card.zombie .ic-val{ color:var(--danger-dark); }
+
+/* 花园 */
+.garden-section{ background:var(--card); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); margin-bottom:12px; }
+.garden-section h2{ font-size:17px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.garden-grid{ display:grid; grid-template-columns:repeat(9,1fr); gap:3px; background:#5d4037; padding:4px; border-radius:8px; max-width:540px; margin:0 auto; }
+.garden-cell{ aspect-ratio:1; background:repeating-linear-gradient(0deg,var(--grass1) 0,var(--grass1) 50%,var(--grass2) 50%,var(--grass2) 100%); border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; position:relative; transition:transform .15s; }
+.garden-cell:hover{ transform:scale(1.05); z-index:5; }
+.garden-cell.selected{ outline:3px solid var(--sun); outline-offset:1px; }
+.garden-cell .plant{ display:inline-flex; filter:drop-shadow(1px 1px 2px rgba(0,0,0,.3)); animation:bob 2s ease-in-out infinite; }
+.garden-cell .zombie{ display:inline-flex; filter:drop-shadow(1px 1px 2px rgba(0,0,0,.4)); animation:zwalk 1.5s ease-in-out infinite; }
+.garden-cell .hp-bar{ position:absolute; bottom:1px; left:2px; right:2px; height:4px; background:rgba(0,0,0,.3); border-radius:2px; }
+.garden-cell .hp-bar .hp-fill{ height:100%; background:#f44336; border-radius:2px; }
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes zwalk{0%,100%{transform:translateX(0) rotate(-3deg)}50%{transform:translateX(2px) rotate(3deg)}}
+
+/* 作业列表 */
+.task-section{ background:var(--card); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); margin-bottom:12px; }
+.task-section h2{ font-size:17px; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.task-list{ display:flex; flex-direction:column; gap:8px; }
+.task-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:#FAFAFA; border-radius:10px; border:2px solid transparent; transition:all .2s; }
+.task-item.done{ background:#E8F5E9; border-color:#A5D6A7; opacity:.7; }
+.task-item.done .task-title{ text-decoration:line-through; }
+.task-item .task-icon{ font-size:24px; }
+.task-item .task-info{ flex:1; min-width:0; }
+.task-item .task-title{ font-size:14px; font-weight:600; color:var(--text-dark); }
+.task-item .task-meta{ font-size:11px; color:#888; display:flex; gap:8px; align-items:center; }
+.task-item .task-tag{ background:var(--primary); color:#fff; border-radius:4px; padding:1px 5px; font-size:10px; }
+.task-item .task-tag.read{ background:var(--accent); }
+.task-item .task-tag.test{ background:#7B1FA2; }
+.task-item .task-reward{ font-size:12px; font-weight:bold; color:var(--accent); white-space:nowrap; }
+.task-item .btn-done{ width:42px; height:42px; border:none; border-radius:50%; background:#E0E0E0; color:#666; font-size:20px; cursor:pointer; flex-shrink:0; transition:all .2s; }
+.task-item .btn-done:hover{ background:var(--primary); color:#fff; transform:scale(1.1); }
+.task-item.done .btn-done{ background:var(--primary); color:#fff; cursor:default; }
+.task-item .btn-del{ border:none; background:transparent; color:#999; font-size:16px; cursor:pointer; padding:4px; }
+.task-item .btn-del:hover{ color:var(--danger); }
+
+/* 商店 */
+.shop-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+.shop-item{ background:#FAFAFA; border:2px solid #E0E0E0; border-radius:10px; padding:10px; text-align:center; transition:all .2s; }
+.shop-item:hover{ border-color:var(--primary); transform:translateY(-2px); box-shadow:var(--shadow); }
+.shop-item .shop-icon{ font-size:36px; }
+.shop-item .shop-name{ font-size:13px; font-weight:600; margin:4px 0; }
+.shop-item .shop-desc{ font-size:11px; color:#888; margin-bottom:4px; min-height:28px; }
+.shop-item .shop-cost{ font-size:14px; font-weight:bold; color:var(--accent); }
+.shop-item .btn-buy{ width:100%; border:none; border-radius:8px; background:var(--primary); color:#fff; padding:6px; font-size:13px; cursor:pointer; margin-top:4px; }
+.shop-item .btn-buy:hover{ background:var(--primary-dark); }
+.shop-item .btn-buy:disabled{ background:#BDBDBD; cursor:not-allowed; }
+
+/* 日志 */
+.log-list{ display:flex; flex-direction:column; gap:6px; max-height:400px; overflow-y:auto; }
+.log-item{ display:flex; gap:8px; padding:8px 10px; background:#FAFAFA; border-radius:8px; font-size:13px; border-left:4px solid var(--primary); }
+.log-item.gain{ border-left-color:var(--sun); }
+.log-item.spend{ border-left-color:var(--danger); }
+.log-item .log-time{ color:#888; font-size:11px; white-space:nowrap; }
+.log-item .log-text{ flex:1; }
+.log-item .log-amount{ font-weight:bold; }
+.log-item.gain .log-amount{ color:var(--accent); }
+.log-item.spend .log-amount{ color:var(--danger); }
+
+/* 徽章 */
+.badge-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+.badge-item{ width:90px; height:90px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle at 30% 30%,#FFE082,#FFB300); border:3px solid #FFD700; color:#3E2723; font-size:12px; font-weight:bold; text-align:center; position:relative; }
+.badge-item.locked{ filter:grayscale(1) opacity(.4); background:radial-gradient(circle at 30% 30%,#CFD8DC,#90A4AE); border-color:#90A4AE; color:#37474F; }
+.badge-item .b-icon{ font-size:30px; }
+
+/* 家长面板 */
+.parent-panel{ background:var(--card); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); }
+.parent-panel h2{ margin-bottom:12px; font-size:18px; }
+.parent-panel .form-row{ display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+.parent-panel input,.parent-panel select{ padding:8px 10px; border:1px solid #ccc; border-radius:8px; font-size:14px; min-width:0; }
+.parent-panel input[type=text]{ flex:1; min-width:150px; }
+.parent-panel button{ border:none; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; background:var(--primary); color:#fff; }
+.parent-panel button:hover{ background:var(--primary-dark); }
+.parent-panel button.danger{ background:var(--danger); }
+.parent-panel .child-manage{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.parent-panel .child-chip{ background:#E8F5E9; border:1px solid #A5D6A7; border-radius:20px; padding:4px 10px; font-size:13px; display:flex; align-items:center; gap:4px; }
+.parent-panel .child-chip .x{ cursor:pointer; color:var(--danger); font-weight:bold; }
+
+/* 模态框 */
+.modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:999; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.show{ display:flex; }
+.modal{ background:#fff; border-radius:var(--radius); padding:20px; max-width:380px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,.3); }
+.modal h3{ margin-bottom:12px; }
+.modal input{ width:100%; padding:10px; border:2px solid #ccc; border-radius:8px; font-size:18px; text-align:center; letter-spacing:4px; }
+.modal .btn-row{ display:flex; gap:10px; margin-top:14px; }
+.modal button{ flex:1; border:none; border-radius:8px; padding:10px; font-size:15px; cursor:pointer; }
+.modal .btn-ok{ background:var(--primary); color:#fff; }
+.modal .btn-cancel{ background:#E0E0E0; }
+
+/* Toast */
+.toast{ position:fixed; top:70px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.8); color:#fff; padding:10px 20px; border-radius:20px; z-index:9999; font-size:14px; display:none; animation:fadeInDown .3s; }
+.toast.show{ display:block; }
+@keyframes fadeInDown{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* 响应式 */
+@media(max-width:680px){
+  .sidebar{ width:56px; }
+  .sidebar .nav-item{ flex-direction:column; padding:8px 2px; font-size:10px; gap:2px; text-align:center; }
+  .sidebar .nav-item .icon{ font-size:22px; }
+  .sidebar .nav-item .nav-label{ font-size:9px; line-height:1.1; }
+  .sidebar .nav-section{ display:none; }
+  .sidebar .nav-item .badge-count{ font-size:9px; padding:0 4px; }
+  .garden-grid{ gap:1px; padding:2px; }
+  .garden-cell,.garden-cell .plant,.garden-cell .zombie{ font-size:16px; }
+  .topbar{ padding:6px 8px; gap:6px; }
+  .topbar .stat{ min-width:48px; padding:3px 6px; }
+  .topbar .stat .v{ font-size:16px; }
+  .topbar .stat .l{ font-size:9px; }
+  .topbar .child-selector{ padding:3px 8px; }
+  .topbar select{ font-size:13px; }
+  .main{ padding:8px; }
+  .info-card{ min-width:100px; padding:8px; }
+  .info-card .ic-val{ font-size:18px; }
+}
+@media(max-width:420px){
+  .topbar .stat{ min-width:42px; }
+  .topbar .stat .v{ font-size:14px; }
+  .progress-wrap{ min-width:60px; }
+  .task-item{ padding:8px; gap:6px; }
+  .task-item .task-icon{ font-size:20px; }
+  .task-item .btn-done{ width:36px; height:36px; font-size:18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 顶部状态栏 -->
+<div class="topbar">
+  <div class="child-selector">
+    <span>👦</span>
+    <select id="childSelect"></select>
+  </div>
+  <div class="stat sun" title="阳光值">
+    <span class="v" id="statSun">0</span>
+    <span class="l">☀️阳光</span>
+  </div>
+  <div class="stat" title="今日进度">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+      <span class="pct" id="progressPct">0%</span>
+    </div>
+    <span class="l" style="margin-top:2px">今日进度</span>
+  </div>
+  <div class="stat" title="暑假剩余">
+    <span class="v" id="statHoliday">0</span>
+    <span class="l">🏖️剩余天</span>
+  </div>
+  <div class="stat" title="今日作业">
+    <span class="v" id="statTasks">0/0</span>
+    <span class="l">📋作业</span>
+  </div>
+  <div class="stat" title="植物数量">
+    <span class="v" id="statPlants">0</span>
+    <span class="l">🌻植物</span>
+  </div>
+  <div class="stat zombie" title="僵尸数量">
+    <span class="v" id="statZombies">0</span>
+    <span class="l">🧟僵尸</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn-parent" id="btnParent">🔒 家长</button>
+</div>
+
+<!-- 布局 -->
+<div class="layout">
+  <!-- 左侧工具栏 -->
+  <nav class="sidebar" id="sidebar"></nav>
+  <!-- 主区域 -->
+  <main class="main" id="mainArea"></main>
+</div>
+
+<!-- 密码模态框 -->
+<div class="modal-overlay" id="pwdModal">
+  <div class="modal">
+    <h3>🔒 家长模式</h3>
+    <p style="color:#888;font-size:13px;margin-bottom:8px">请输入密码</p>
+    <input type="password" id="pwdInput" maxlength="8" placeholder="••••">
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closePwdModal()">取消</button>
+      <button class="btn-ok" onclick="checkPwd()">进入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK（可选，用于跨设备实时同步） -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script>
+/* ========== 默认作业库（广西北海四升五） ========== */
+const DEFAULT_TASKS = {
+  chinese: [
+    {icon:'📖',title:'课外阅读30分钟',cat:'chinese',type:'read',reward:50,desc:'读完一个章节并复述'},
+    {icon:'✍️',title:'写一篇日记',cat:'chinese',type:'normal',reward:10,desc:'不少于200字'},
+    {icon:'📝',title:'生字抄写（5个）',cat:'chinese',type:'normal',reward:10,desc:'每字3遍，笔顺正确'},
+    {icon:'🔤',title:'拼音默写练习',cat:'chinese',type:'normal',reward:10,desc:'五上第一单元词语'},
+    {icon:'📜',title:'背诵古诗一首',cat:'chinese',type:'normal',reward:10,desc:'《泊船瓜洲》等'},
+    {icon:'🎯',title:'小测试：字词基础',cat:'chinese',type:'test',reward:20,desc:'20题，全对额外+10'},
+    {icon:'✏️',title:'抄写好词好句',cat:'chinese',type:'normal',reward:10,desc:'积累5个好句'},
+  ],
+  math: [
+    {icon:'🔢',title:'小数加减法20题',cat:'math',type:'normal',reward:10,desc:'列竖式计算'},
+    {icon:'📐',title:'多边形面积计算',cat:'math',type:'normal',reward:10,desc:'平行四边形/三角形'},
+    {icon:'🧮',title:'简易方程5题',cat:'math',type:'normal',reward:10,desc:'解一元一次方程'},
+    {icon:'📊',title:'应用题4道',cat:'math',type:'normal',reward:10,desc:'行程/工程问题'},
+    {icon:'🎯',title:'小测试：计算能力',cat:'math',type:'test',reward:20,desc:'50题限时10分钟'},
+    {icon:'📈',title:'统计图表练习',cat:'math',type:'normal',reward:10,desc:'看图回答问题'},
+  ],
+  english: [
+    {icon:'📖',title:'英语绘本阅读',cat:'english',type:'read',reward:50,desc:'一本绘本并朗读'},
+    {icon:'🔤',title:'单词背诵10个',cat:'english',type:'normal',reward:10,desc:'五上Unit1词汇'},
+    {icon:'🗣️',title:'口语练习15分钟',cat:'english',type:'normal',reward:10,desc:'跟读+自读'},
+    {icon:'📝',title:'抄写单词3遍',cat:'english',type:'normal',reward:10,desc:'规范书写'},
+    {icon:'🎯',title:'小测试：单词闯关',cat:'english',type:'test',reward:20,desc:'20词全对额外+10'},
+    {icon:'💬',title:'对话练习',cat:'english',type:'normal',reward:10,desc:'情景对话2组'},
+  ],
+  sport: [
+    {icon:'🤸',title:'跳绳300个',cat:'sport',type:'normal',reward:10,desc:'中考标准：185个/分钟满分'},
+    {icon:'📏',title:'立定跳远20次',cat:'sport',type:'normal',reward:10,desc:'男生2.5m/女生2.02m满分'},
+    {icon:'🏃',title:'慢跑15分钟',cat:'sport',type:'normal',reward:10,desc:'中考1000米(男)/800米(女)'},
+    {icon:'💪',title:'仰卧起坐40个',cat:'sport',type:'normal',reward:10,desc:'中考标准1分钟'},
+    {icon:'🤾',title:'球类运动30分钟',cat:'sport',type:'normal',reward:10,desc:'篮球/足球/羽毛球'},
+    {icon:'🧘',title:'柔韧拉伸10分钟',cat:'sport',type:'normal',reward:10,desc:'坐位体前屈练习'},
+  ],
+  house: [
+    {icon:'🛏️',title:'整理床铺',cat:'house',type:'normal',reward:10,desc:'起床后叠被子'},
+    {icon:'🧹',title:'打扫房间',cat:'house',type:'normal',reward:10,desc:'扫地/擦桌子'},
+    {icon:'🍽️',title:'帮洗碗',cat:'house',type:'normal',reward:10,desc:'晚饭后'},
+    {icon:'👕',title:'叠衣服收衣',cat:'house',type:'normal',reward:10,desc:'自己的衣物'},
+    {icon:'🌱',title:'浇水照顾植物',cat:'house',type:'normal',reward:10,desc:'阳台花草'},
+    {icon:'🗑️',title:'倒垃圾',cat:'house',type:'normal',reward:10,desc:'每日垃圾分类'},
+  ],
+};
+
+/* ========== 商店植物 ========== */
+const PLANTS = {
+  sunflower:{name:'向日葵',iconClass:'plant-sunflower',cost:50,desc:'每天产5阳光',atk:0,auto:true,produce:5},
+  shroom:{name:'阳光菇',iconClass:'plant-shroom',cost:25,desc:'每天产2阳光',atk:0,auto:true,produce:2},
+  peashooter:{name:'豌豆射手',iconClass:'plant-pea',cost:100,desc:'攻击僵尸',atk:10},
+  snowpea:{name:'寒冰射手',iconClass:'plant-snowpea',cost:175,desc:'减速攻击',atk:15},
+  cherry:{name:'樱桃炸弹',iconClass:'plant-cherry',cost:150,desc:'范围爆炸',atk:40},
+  wallnut:{name:'坚果墙',iconClass:'plant-wallnut',cost:50,desc:'防御植物',atk:0,hp:300},
+  firepea:{name:'火焰豌豆',iconClass:'plant-firepea',cost:150,desc:'强力攻击',atk:20},
+};
+
+const EXCHANGES = [
+  {id:'killZ',icon:'💥',name:'消灭僵尸',desc:'消灭一只僵尸',cost:100},
+  {id:'noWrite',icon:'🎫',name:'免写卡',desc:'免去一次作业',cost:200},
+  {id:'gameTime',icon:'🎮',name:'玩游戏30分钟',desc:'兑换游戏时间',cost:300},
+  {id:'playground',icon:'🎡',name:'游乐场一次',desc:'周末游乐场',cost:500},
+];
+
+/* ========== 图标生成器 ========== */
+function plantIconHTML(plantId){
+  const parts = {
+    sunflower:'<div class="plant-icon plant-sunflower"><div class="petals"></div><div class="face"></div><div class="eye l"></div><div class="eye r"></div><div class="smile"></div><div class="stem"></div></div>',
+    shroom:'<div class="plant-icon plant-shroom"><div class="cap"></div><div class="stem"></div><div class="eye l"></div><div class="eye r"></div></div>',
+    pea:'<div class="plant-icon plant-pea"><div class="head"></div><div class="snout"></div><div class="eye l"></div><div class="eye r"></div></div>',
+    snowpea:'<div class="plant-icon plant-snowpea"><div class="frost"></div><div class="head"></div><div class="snout"></div><div class="eye l"></div><div class="eye r"></div></div>',
+    cherry:'<div class="plant-icon plant-cherry"><div class="stem"></div><div class="berry l"></div><div class="berry r"></div><div class="eye l"></div><div class="eye r"></div></div>',
+    wallnut:'<div class="plant-icon plant-wallnut"><div class="nut"></div><div class="eye l"></div><div class="eye r"></div><div class="mouth"></div></div>',
+    firepea:'<div class="plant-icon plant-firepea"><div class="flame"></div><div class="head"></div><div class="snout"></div><div class="eye l"></div><div class="eye r"></div></div>',
+  };
+  return parts[plantId] || parts.pea;
+}
+function zombieIconHTML(){
+  return '<div class="zombie-icon"><div class="head"></div><div class="eye l"></div><div class="eye r"></div><div class="mouth"></div><div class="body"></div><div class="arm l"></div><div class="arm r"></div></div>';
+}
+
+/* ========== 全局状态 ========== */
+let state = {
+  parentPassword:'8888',
+  children:[],      // [{id,name,sun,log,garden,zombies,tasks,dateStreak,lastDate,claimedToday:{}}]
+  currentChildId:null,
+  isParent:false,
+  currentView:'home',
+};
+
+const STORAGE_KEY = 'studyWorkbench_v1';
+
+/* ========== 工具函数 ========== */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function $(id){ return document.getElementById(id); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+function playDing(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 1200; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.3);
+  }catch(e){}
+}
+function playCoin(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(800,ctx.currentTime);
+    osc.frequency.setValueAtTime(1200,ctx.currentTime+0.1);
+    osc.type='triangle';
+    gain.gain.setValueAtTime(0.25,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+function playError(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value=200; osc.type='square';
+    gain.gain.setValueAtTime(0.15,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.2);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.2);
+  }catch(e){}
+}
+
+/* ========== 跨设备实时同步（Firebase，可选） ========== */
+let firebaseApp = null;
+let firebaseDb = null;
+let firebaseRef = null;
+let syncRoom = localStorage.getItem('studyWorkbench_room') || '';
+let syncEnabled = false;
+let ignoreNextFirebaseUpdate = false;
+
+function initFirebase(){
+  const cfg = getFirebaseConfig();
+  if(!cfg || !cfg.apiKey || !syncRoom) return;
+  try{
+    if(!firebaseApp) firebaseApp = firebase.initializeApp(cfg);
+    firebaseDb = firebase.database();
+    firebaseRef = firebaseDb.ref('studyWorkbench/'+syncRoom);
+    firebaseRef.on('value', snap=>{
+      if(ignoreNextFirebaseUpdate){ ignoreNextFirebaseUpdate=false; return; }
+      const data = snap.val();
+      if(data && data.state){
+        try{
+          const newState = JSON.parse(data.state);
+          // 合并：保留当前视窗/密码等本地状态
+          const keep = { currentView:state.currentView, isParent:state.isParent, parentPassword:state.parentPassword };
+          Object.assign(state, newState, keep);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          render();
+        }catch(e){}
+      }
+    });
+    syncEnabled = true;
+  }catch(e){ console.error('Firebase同步初始化失败',e); }
+}
+function pushToFirebase(){
+  if(!syncEnabled || !firebaseRef) return;
+  try{
+    ignoreNextFirebaseUpdate = true;
+    firebaseRef.set({state:JSON.stringify(state), ts:Date.now()});
+  }catch(e){}
+}
+function getFirebaseConfig(){
+  try{ return JSON.parse(localStorage.getItem('studyWorkbench_fbConfig')||'{}'); }catch(e){ return {}; }
+}
+function setFirebaseConfig(cfg){ localStorage.setItem('studyWorkbench_fbConfig', JSON.stringify(cfg||{})); }
+function setSyncRoom(room){
+  syncRoom = room||'';
+  if(syncRoom) localStorage.setItem('studyWorkbench_room', syncRoom);
+  else localStorage.removeItem('studyWorkbench_room');
+}
+
+/* ========== 数据持久化 & 同步 ========== */
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  pushToFirebase();
+  // 跨标签页同步
+  try{
+    localStorage.setItem(STORAGE_KEY+'_sync', JSON.stringify({state,ts:Date.now()}));
+    bc && bc.postMessage({type:'sync', childId:state.currentChildId});
+  }catch(e){}
+}
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{ Object.assign(state, JSON.parse(raw)); }catch(e){}
+  }
+  if(!state.children || state.children.length===0){
+    // 初始化默认孩子
+    state.children = [createChild('宝贝')];
+    state.currentChildId = state.children[0].id;
+    saveState();
+  }
+  if(!state.currentChildId && state.children.length>0){
+    state.currentChildId = state.children[0].id;
+  }
+}
+let bc = null;
+function initSync(){
+  initFirebase();
+  try{
+    bc = new BroadcastChannel('studyWorkbench');
+    bc.onmessage = (e)=>{
+      if(e.data && e.data.type==='sync'){
+        loadState();
+        render();
+      }
+    };
+  }catch(e){}
+  // storage事件兼容
+  window.addEventListener('storage',(e)=>{
+    if(e.key === STORAGE_KEY+'_sync'){
+      loadState();
+      render();
+    }
+  });
+}
+
+/* ========== 孩子管理 ========== */
+function createChild(name){
+  const childId = uid();
+  return {
+    id:childId, name:name, sun:50,
+    log:[],
+    garden:{},          // {cellIdx:{plantId,hp,placedDay}}
+    zombies:[],         // [{id,cellIdx,hp}]
+    tasks:JSON.parse(JSON.stringify(DEFAULT_TASKS)),
+    dateStreak:0,
+    lastCompleteDate:null,
+    claimedToday:{},    // {taskKey:true}
+    badges:{streak7:false},
+    zombieDayCount:0,
+    selectedCell:null,
+    pendingPurchase:null, // {plantId}
+  };
+}
+function getChild(){
+  return state.children.find(c=>c.id===state.currentChildId) || state.children[0];
+}
+
+/* ========== 日期 & 假期 ========== */
+function getHolidayRemain(){
+  // 暑假到8月31日
+  const now = new Date();
+  const end = new Date(now.getFullYear(), 7, 31, 23, 59, 59);
+  if(now > end) return 0;
+  return Math.ceil((end - now)/(86400000));
+}
+
+/* ========== 作业完成逻辑 ========== */
+function taskKey(t){ return t.cat+'_'+t.title; }
+function isTaskDone(child, t){
+  return !!child.claimedToday[taskKey(t)];
+}
+function getTodayTasks(child){
+  let all=[];
+  for(const cat in child.tasks) all = all.concat(child.tasks[cat]);
+  return all;
+}
+function getDoneCount(child){
+  const all = getTodayTasks(child);
+  return all.filter(t=>isTaskDone(child,t)).length;
+}
+function getProgress(child){
+  const all = getTodayTasks(child);
+  if(all.length===0) return 0;
+  return Math.round(getDoneCount(child)/all.length*100);
+}
+function completeTask(child, t){
+  const key = taskKey(t);
+  if(child.claimedToday[key]) return;
+  child.claimedToday[key] = true;
+  let reward = t.reward;
+  // 小测试全对额外10已在reward体现（test type默认20=10+10）
+  child.sun += reward;
+  addLog(child, 'gain', `完成【${t.title}】`, reward);
+  // 检查每日连续完成
+  const today = todayStr();
+  if(getProgress(child)===100){
+    if(child.lastCompleteDate){
+      const diff = Math.round((new Date(today)-new Date(child.lastCompleteDate))/86400000);
+      if(diff===1) child.dateStreak++;
+      else if(diff>1) child.dateStreak=1;
+    } else {
+      child.dateStreak = 1;
+    }
+    child.lastCompleteDate = today;
+    if(child.dateStreak>=7) child.badges.streak7 = true;
+  }
+  saveState();
+  playCoin();
+  toast(`✅ 完成！+${reward}阳光 ☀️`);
+}
+
+/* ========== 日志 ========== */
+function addLog(child, type, text, amount){
+  child.log.unshift({type, text, amount, time: new Date().toLocaleString('zh-CN')});
+  if(child.log.length>200) child.log = child.log.slice(0,200);
+}
+
+/* ========== 花园 & 僵尸 ========== */
+const GARDEN_COLS = 9, GARDEN_ROWS = 5;
+const CAT_ROWS = {chinese:0, math:1, english:2, sport:3, house:4};
+function getZombieCount(child){ return child.zombies.length; }
+function getPlantCount(child){ return Object.keys(child.garden).length; }
+function getCatProgress(child, cat){
+  const list = child.tasks[cat] || [];
+  if(list.length===0) return 100; // 无作业视为完成
+  const done = list.filter(t=>isTaskDone(child,t)).length;
+  return Math.round(done/list.length*100);
+}
+function addZombie(child, cat){
+  // 僵尸出现在最右列，默认随机行/类别
+  let row;
+  if(cat && CAT_ROWS[cat]!==undefined) row = CAT_ROWS[cat];
+  else row = Math.floor(Math.random()*GARDEN_ROWS);
+  child.zombies.push({id:uid(), cat:cat||null, cellIdx: row*GARDEN_COLS + (GARDEN_COLS-1), hp:100});
+}
+function plantAttack(child){
+  // 每个攻击型植物攻击同行僵尸
+  for(const cellStr in child.garden){
+    const p = child.garden[cellStr];
+    const plant = PLANTS[p.plantId];
+    if(!plant || plant.atk<=0) continue;
+    const cellIdx = parseInt(cellStr);
+    const row = Math.floor(cellIdx/GARDEN_COLS);
+    // 找同行最右的僵尸
+    const targets = child.zombies.filter(z=>Math.floor(z.cellIdx/GARDEN_COLS)===row).sort((a,b)=>a.cellIdx-b.cellIdx);
+    if(targets.length>0){
+      targets[0].hp -= plant.atk;
+      if(targets[0].hp<=0){
+        child.zombies = child.zombies.filter(z=>z.id!==targets[0].id);
+      }
+    }
+  }
+}
+function dailyProduce(child){
+  for(const cellStr in child.garden){
+    const p = child.garden[cellStr];
+    const plant = PLANTS[p.plantId];
+    if(plant && plant.auto && plant.produce){
+      child.sun += plant.produce;
+      addLog(child,'gain',`${plant.name}产出阳光`,plant.produce);
+    }
+  }
+}
+function checkZombieDaily(child){
+  // 每日僵尸规则：按作业类别分别计算
+  for(const cat in CAT_ROWS){
+    const progress = getCatProgress(child, cat);
+    const row = CAT_ROWS[cat];
+    let catZombies = child.zombies.filter(z=>Math.floor(z.cellIdx/GARDEN_COLS)===row);
+
+    if(progress>=80) continue; // 该类别僵尸不活动、不增加
+
+    // 该类有未完成项但未出现僵尸时，出现一只僵尸
+    if(progress<100 && catZombies.length===0){
+      addZombie(child, cat);
+      catZombies = child.zombies.filter(z=>Math.floor(z.cellIdx/GARDEN_COLS)===row);
+    }
+
+    // 少于50%：该类别的僵尸前进一格
+    if(progress<50){
+      catZombies.forEach(z=>{
+        const col = z.cellIdx%GARDEN_COLS;
+        if(col>0) z.cellIdx = row*GARDEN_COLS + (col-1);
+      });
+    }
+
+    // 少于30%：该类别再增加一只僵尸（每类上限3只）
+    if(progress<30 && catZombies.length<3){
+      addZombie(child, cat);
+    }
+  }
+}
+
+/* ========== 渲染 ========== */
+function render(){
+  renderTopbar();
+  renderSidebar();
+  renderMain();
+}
+
+function renderTopbar(){
+  const child = getChild();
+  if(!child) return;
+  // 孩子选择
+  const sel = $('childSelect');
+  sel.innerHTML = state.children.map(c=>`<option value="${c.id}" ${c.id===state.currentChildId?'selected':''}>${c.name}</option>`).join('');
+  sel.onchange = ()=>{ state.currentChildId=sel.value; state.isParent=false; state.currentView='home'; saveState(); render(); };
+  $('statSun').textContent = child.sun;
+  const prog = getProgress(child);
+  $('progressFill').style.width = prog+'%';
+  $('progressPct').textContent = prog+'%';
+  $('statHoliday').textContent = getHolidayRemain();
+  const done = getDoneCount(child);
+  const total = getTodayTasks(child).length;
+  $('statTasks').textContent = done+'/'+total;
+  $('statPlants').textContent = getPlantCount(child);
+  $('statZombies').textContent = getZombieCount(child);
+  // 家长按钮
+  const btn = $('btnParent');
+  if(state.isParent){
+    btn.textContent='👨‍👩‍👧 退出家长';
+    btn.classList.add('active');
+  }else{
+    btn.textContent='🔒 家长';
+    btn.classList.remove('active');
+  }
+}
+
+function renderSidebar(){
+  const child = getChild();
+  const navItems = [
+    {id:'home',icon:'🏠',label:'首页'},
+    {id:'chinese',icon:'📚',label:'语文'},
+    {id:'math',icon:'🔢',label:'数学'},
+    {id:'english',icon:'🔤',label:'英语'},
+    {id:'sport',icon:'⚽',label:'运动'},
+    {id:'house',icon:'🧹',label:'家务'},
+    {id:'garden',icon:'🌻',label:'花园'},
+    {id:'shop',icon:'🛒',label:'商店'},
+    {id:'badge',icon:'🏅',label:'徽章'},
+    {id:'log',icon:'📋',label:'日志'},
+  ];
+  if(state.isParent) navItems.push({id:'parent',icon:'👨‍👩‍👧',label:'家长'});
+  $('sidebar').innerHTML = navItems.map(n=>{
+    let badge='';
+    if(['chinese','math','english','sport','house'].includes(n.id) && child){
+      const undone = child.tasks[n.id] ? child.tasks[n.id].filter(t=>!isTaskDone(child,t)).length : 0;
+      if(undone>0) badge = `<span class="badge-count">${undone}</span>`;
+    }
+    return `<div class="nav-item ${state.currentView===n.id?'active':''}" onclick="navTo('${n.id}')">
+      <span class="icon">${n.icon}</span><span class="nav-label">${n.label}</span>${badge}
+    </div>`;
+  }).join('');
+}
+
+function navTo(view){
+  state.currentView = view;
+  render();
+}
+
+function renderMain(){
+  const area = $('mainArea');
+  const view = state.currentView;
+  const child = getChild();
+  if(!child){ area.innerHTML='<p>请先添加孩子</p>'; return; }
+
+  if(view==='home'){
+    area.innerHTML = renderHome(child);
+  } else if(view==='garden'){
+    area.innerHTML = renderGarden(child);
+    bindGarden(child);
+  } else if(view==='shop'){
+    area.innerHTML = renderShop(child);
+    bindShop(child);
+  } else if(view==='badge'){
+    area.innerHTML = renderBadges(child);
+  } else if(view==='log'){
+    area.innerHTML = renderLog(child);
+  } else if(view==='parent'){
+    area.innerHTML = renderParentPanel(child);
+    bindParentPanel(child);
+  } else {
+    // 作业分类
+    area.innerHTML = renderTaskList(child, view) + renderGardenMini(child);
+    bindTasks(child, view);
+  }
+}
+
+/* ---------- 首页 ---------- */
+function renderHome(child){
+  const prog = getProgress(child);
+  const done = getDoneCount(child);
+  const total = getTodayTasks(child).length;
+  let html = `<div class="task-section">
+    <h2>🏠 今日总览</h2>
+    <div class="info-cards">
+      <div class="info-card holiday"><div class="ic-icon">🏖️</div><div class="ic-val">${getHolidayRemain()}</div><div class="ic-label">暑假剩余天</div></div>
+      <div class="info-card"><div class="ic-icon">📋</div><div class="ic-val">${done}/${total}</div><div class="ic-label">今日作业完成</div></div>
+      <div class="info-card"><div class="ic-icon">🌻</div><div class="ic-val">${getPlantCount(child)}</div><div class="ic-label">花园植物</div></div>
+      <div class="info-card zombie"><div class="ic-icon">🧟</div><div class="ic-val">${getZombieCount(child)}</div><div class="ic-label">入侵僵尸</div></div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>今日总进度</span><b>${prog}%</b></div>
+      <div class="progress-bar" style="height:16px"><div class="fill" style="width:${prog}%"></div></div>
+    </div>
+  </div>`;
+
+  // 各类进度卡片
+  const cats = [['chinese','📚语文'],['math','🔢数学'],['english','🔤英语'],['sport','⚽运动'],['house','🧹家务']];
+  html += `<div class="task-section"><h2>📊 各科进度</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">`;
+  cats.forEach(([cat,label])=>{
+    const cp = getCatProgress(child, cat);
+    const list = child.tasks[cat]||[];
+    const d = list.filter(t=>isTaskDone(child,t)).length;
+    const hasZombie = child.zombies.some(z=>Math.floor(z.cellIdx/GARDEN_COLS)===CAT_ROWS[cat]);
+    html += `<div onclick="navTo('${cat}')" style="cursor:pointer;background:#FAFAFA;border-radius:10px;padding:10px;border:2px solid ${cp===100?'#A5D6A7':'#E0E0E0'}">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">${label}</b>${hasZombie?'<span title="有僵尸入侵">🧟</span>':''}</div>
+      <div style="font-size:11px;color:#888;margin:2px 0">${d}/${list.length}完成</div>
+      <div class="progress-bar" style="height:8px"><div class="fill" style="width:${cp}%"></div></div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 今日作业清单
+  html += `<div class="task-section"><h2>📋 今日作业清单</h2><div class="task-list">`;
+  const all = getTodayTasks(child);
+  all.forEach(t=>{
+    const done2 = isTaskDone(child,t);
+    const tagText = t.type==='read'?'阅读':t.type==='test'?'小测试':'日常';
+    html += `<div class="task-item ${done2?'done':''}">
+      <span class="task-icon">${t.icon}</span>
+      <div class="task-info">
+        <div class="task-title">${t.title}</div>
+        <div class="task-meta"><span class="task-tag ${t.type}">${tagText}</span><span>${t.desc||''}</span></div>
+      </div>
+      <span class="task-reward">+${t.reward}☀️</span>
+      <button class="btn-done" ${done2?'disabled':''} onclick="doTaskByKey('${t.cat}','${t.title.replace(/'/g,"\\'")}')">${done2?'✓':'√'}</button>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 花园预览
+  html += renderGardenMini(child);
+  return html;
+}
+
+function doTaskByKey(cat, title){
+  const child = getChild();
+  const t = (child.tasks[cat]||[]).find(x=>x.title===title);
+  if(!t) return;
+  completeTask(child, t);
+  plantAttack(child);
+  render();
+}
+window.doTaskByKey = doTaskByKey;
+
+/* ---------- 作业列表 ---------- */
+function renderTaskList(child, cat){
+  const cats = {chinese:'语文',math:'数学',english:'英语',sport:'运动',house:'家务'};
+  const list = child.tasks[cat] || [];
+  const icons = {chinese:'📚',math:'🔢',english:'🔤',sport:'⚽',house:'🏠'};
+  let html = `<div class="task-section">
+    <h2>${icons[cat]} ${cats[cat]}作业</h2>
+    <div class="task-list">`;
+  if(list.length===0) html += '<p style="color:#888;text-align:center;padding:20px">暂无作业，家长可在家长模式添加</p>';
+  list.forEach((t,i)=>{
+    const done = isTaskDone(child,t);
+    const tagText = t.type==='read'?'阅读':t.type==='test'?'小测试':'日常';
+    html += `<div class="task-item ${done?'done':''}">
+      <span class="task-icon">${t.icon}</span>
+      <div class="task-info">
+        <div class="task-title">${t.title}</div>
+        <div class="task-meta">
+          <span class="task-tag ${t.type}">${tagText}</span>
+          <span>${t.desc||''}</span>
+        </div>
+      </div>
+      <span class="task-reward">+${t.reward}☀️</span>
+      <button class="btn-done" ${done?'disabled':''} onclick="doTask(${i},'${cat}')">${done?'✓':'√'}</button>`;
+    if(state.isParent) html += `<button class="btn-del" onclick="delTask('${cat}',${i})">✕</button>`;
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+
+function renderGardenMini(child){
+  let html = `<div class="garden-section"><h2>🌻 我的花园</h2><div class="garden-grid">`;
+  for(let i=0;i<GARDEN_COLS*GARDEN_ROWS;i++){
+    const plant = child.garden[i];
+    const zombie = child.zombies.find(z=>z.cellIdx===i);
+    let content='';
+    if(plant){ content += `<span class="plant">${plantIconHTML(plant.plantId)}</span>`; }
+    if(zombie){ content += `<span class="zombie">${zombieIconHTML()}</span><div class="hp-bar"><div class="hp-fill" style="width:${zombie.hp}%"></div></div>`; }
+    html += `<div class="garden-cell">${content}</div>`;
+  }
+  html += `</div>`;
+  if(child.zombies.length>0) html += `<p style="text-align:center;color:#e53935;margin-top:6px;font-size:13px">⚠️ 有${child.zombies.length}只僵尸入侵！去商店买植物消灭它</p>`;
+  html += `</div>`;
+  return html;
+}
+
+function doTask(idx, cat){
+  const child = getChild();
+  const t = child.tasks[cat][idx];
+  if(!t) return;
+  completeTask(child, t);
+  plantAttack(child);
+  render();
+}
+window.doTask = doTask;
+
+function delTask(cat, idx){
+  const child = getChild();
+  child.tasks[cat].splice(idx,1);
+  saveState();
+  render();
+}
+window.delTask = delTask;
+
+function bindTasks(){ /* onclick已内联 */ }
+
+/* ---------- 花园 ---------- */
+function renderGarden(child){
+  let html = `<div class="garden-section">
+    <h2>🌻 我的花园 <span style="font-size:13px;color:#888;margin-left:auto">点击空格子种植选中的植物</span></h2>`;
+  // 植物选择条
+  html += `<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">`;
+  for(const pid in PLANTS){
+    const p = PLANTS[pid];
+    html += `<div onclick="selectPlant('${pid}')" style="cursor:pointer;padding:4px 8px;border:2px solid ${child.pendingPurchase&&child.pendingPurchase.plantId===pid?'var(--sun)':'#ddd'};border-radius:8px;background:#fff;font-size:13px;display:flex;align-items:center;gap:4px">
+      ${plantIconHTML(pid)}
+      <span>${p.name}</span>
+      <span style="color:var(--accent);font-size:11px">${p.cost}☀️</span>
+    </div>`;
+  }
+  html += `</div>`;
+  html += `<div class="garden-grid">`;
+  for(let i=0;i<GARDEN_COLS*GARDEN_ROWS;i++){
+    const plant = child.garden[i];
+    const zombie = child.zombies.find(z=>z.cellIdx===i);
+    let content='';
+    if(plant) content += `<span class="plant">${plantIconHTML(plant.plantId)}</span>`;
+    if(zombie) content += `<span class="zombie">${zombieIconHTML()}</span><div class="hp-bar"><div class="hp-fill" style="width:${zombie.hp}%"></div></div>`;
+    const sel = child.selectedCell===i?'selected':'';
+    html += `<div class="garden-cell ${sel}" onclick="plantHere(${i})">${content}</div>`;
+  }
+  html += `</div>`;
+  if(child.zombies.length>0){
+    html += `<div style="margin-top:8px"><button class="btn-buy" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer" onclick="killZombieNow()">💥 花100阳光消灭一只僵尸</button></div>`;
+  }
+  html += `</div>`;
+  // 战斗按钮
+  html += `<div style="text-align:center;margin-top:8px"><button onclick="doBattle()" style="border:none;border-radius:8px;background:var(--primary);color:#fff;padding:8px 20px;font-size:14px;cursor:pointer">⚔️ 植物攻击僵尸</button></div>`;
+  return html;
+}
+
+function selectPlant(pid){
+  const child = getChild();
+  const plant = PLANTS[pid];
+  if(child.sun < plant.cost){
+    toast('阳光不足！'); playError(); return;
+  }
+  child.pendingPurchase = {plantId:pid};
+  toast(`选中${plant.name}，点击空格子种植`);
+  saveState(); render();
+}
+window.selectPlant = selectPlant;
+
+function plantHere(cellIdx){
+  const child = getChild();
+  if(child.garden[cellIdx]){
+    toast('这个格子已有植物'); return;
+  }
+  if(!child.pendingPurchase){
+    toast('请先在上方选择植物'); return;
+  }
+  const pid = child.pendingPurchase.plantId;
+  const plant = PLANTS[pid];
+  if(child.sun < plant.cost){ toast('阳光不足！'); playError(); return; }
+  child.sun -= plant.cost;
+  child.garden[cellIdx] = {plantId:pid, hp:plant.hp||100, placedDay:todayStr()};
+  child.pendingPurchase = null;
+  child.selectedCell = null;
+  addLog(child,'spend',`种植${plant.name}`,-plant.cost);
+  playDing();
+  toast(`🌱 种植成功！${plant.name}`);
+  // 种植后立即攻击
+  plantAttack(child);
+  saveState(); render();
+}
+window.plantHere = plantHere;
+
+function killZombieNow(){
+  const child = getChild();
+  if(child.zombies.length===0){ toast('没有僵尸'); return; }
+  if(child.sun<100){ toast('阳光不足！需100阳光'); playError(); return; }
+  child.sun -= 100;
+  const z = child.zombies.shift();
+  addLog(child,'spend','消灭僵尸',-100);
+  toast('💥 僵尸被消灭！');
+  saveState(); render();
+}
+window.killZombieNow = killZombieNow;
+
+function doBattle(){
+  const child = getChild();
+  plantAttack(child);
+  saveState(); render();
+  if(child.zombies.length>0) toast('⚔️ 攻击完成，还有僵尸！');
+  else toast('🎉 全部僵尸被消灭！');
+}
+window.doBattle = doBattle;
+
+function bindGarden(){}
+
+/* ---------- 商店 ---------- */
+function renderShop(child){
+  let html = `<div class="task-section">
+    <h2>🛒 阳光商店</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:10px">当前阳光：<b style="color:var(--accent);font-size:18px">${child.sun}</b> ☀️</p>
+    <h3 style="font-size:15px;margin:10px 0 6px">🌱 购买植物（去花园种植）</h3>
+    <div class="shop-grid">`;
+  for(const pid in PLANTS){
+    const p = PLANTS[pid];
+    const can = child.sun>=p.cost;
+    html += `<div class="shop-item">
+      <div class="shop-icon">${plantIconHTML(pid)}</div>
+      <div class="shop-name">${p.name}</div>
+      <div class="shop-desc">${p.desc}</div>
+      <div class="shop-cost">${p.cost}☀️</div>
+      <button class="btn-buy" ${can?'':'disabled'} onclick="buyPlant('${pid}')">购买</button>
+    </div>`;
+  }
+  html += `</div>
+    <h3 style="font-size:15px;margin:14px 0 6px">🎁 兑换奖励</h3>
+    <div class="shop-grid">`;
+  EXCHANGES.forEach(e=>{
+    const can = child.sun>=e.cost;
+    html += `<div class="shop-item">
+      <div class="shop-icon">${e.icon}</div>
+      <div class="shop-name">${e.name}</div>
+      <div class="shop-desc">${e.desc}</div>
+      <div class="shop-cost">${e.cost}☀️</div>
+      <button class="btn-buy" ${can?'':'disabled'} onclick="exchange('${e.id}','${e.name}',${e.cost})">兑换</button>
+    </div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+
+function buyPlant(pid){
+  const child = getChild();
+  const p = PLANTS[pid];
+  if(child.sun<p.cost){ toast('阳光不足！'); playError(); return; }
+  child.pendingPurchase = {plantId:pid};
+  navTo('garden');
+  toast(`选中${p.name}，点击花园空格子种植`);
+}
+window.buyPlant = buyPlant;
+
+function exchange(id,name,cost){
+  const child = getChild();
+  if(child.sun<cost){ toast('阳光不足！'); playError(); return; }
+  if(id==='killZ' && child.zombies.length===0){ toast('没有僵尸可以消灭'); playError(); return; }
+  child.sun -= cost;
+  if(id==='killZ'){
+    child.zombies.shift();
+    addLog(child,'spend',`兑换${name}`, -cost);
+    toast('💥 僵尸被消灭！');
+  } else {
+    addLog(child,'spend',`兑换${name}`, -cost);
+    toast(`🎉 兑换成功：${name}！`);
+  }
+  saveState(); render();
+}
+window.exchange = exchange;
+
+function bindShop(){}
+
+/* ---------- 徽章 ---------- */
+function renderBadges(child){
+  const badges = [
+    {id:'streak7',icon:'🏆',name:'连续7天\n全部完成',desc:'坚持就是胜利！'},
+    {id:'first10',icon:'🌱',name:'获得10\n阳光',desc:'初次收获'},
+    {id:'garden5',icon:'🌻',name:'种植5棵\n植物',desc:'小园丁'},
+    {id:'killz',icon:'⚔️',name:'消灭第一\n只僵尸',desc:'勇敢战士'},
+  ];
+  let html = `<div class="task-section"><h2>🏅 成就徽章</h2>
+    <div class="badge-grid">`;
+  badges.forEach(b=>{
+    let unlocked = false;
+    if(b.id==='streak7') unlocked = child.badges.streak7;
+    if(b.id==='first10') unlocked = true; // 默认已有阳光
+    if(b.id==='garden5') unlocked = getPlantCount(child)>=5;
+    if(b.id==='killz') unlocked = child.log.some(l=>l.text.includes('消灭僵尸'));
+    html += `<div class="badge-item ${unlocked?'':'locked'}">
+      <span class="b-icon">${b.icon}</span>
+      <span>${b.name}</span>
+    </div>`;
+  });
+  html += `</div>`;
+  // 连续天数
+  html += `<div style="margin-top:14px;text-align:center;font-size:16px">📅 连续完成天数：<b style="color:var(--accent);font-size:22px">${child.dateStreak||0}</b> 天</div>`;
+  if((child.dateStreak||0)>=7) html += `<div style="text-align:center;margin-top:6px;font-size:14px;color:var(--accent)">🎉 恭喜获得"连续7天"徽章！</div>`;
+  html += `</div>`;
+  return html;
+}
+
+/* ---------- 日志 ---------- */
+function renderLog(child){
+  let html = `<div class="task-section"><h2>📋 阳光日志</h2>`;
+  if(child.log.length===0) html += '<p style="color:#888;text-align:center;padding:20px">还没有日志记录</p>';
+  else{
+    html += '<div class="log-list">';
+    child.log.forEach(l=>{
+      html += `<div class="log-item ${l.type}">
+        <span class="log-time">${l.time.slice(5)}</span>
+        <span class="log-text">${l.text}</span>
+        <span class="log-amount">${l.amount>0?'+':''}${l.amount}☀️</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ---------- 家长面板 ---------- */
+function renderParentPanel(child){
+  let html = `<div class="parent-panel">
+    <h2>👨‍👩‍👧 家长管理面板</h2>
+
+    <h3 style="font-size:15px;margin-bottom:8px">👤 孩子管理</h3>
+    <div class="form-row">
+      <input type="text" id="newChildName" placeholder="孩子名字">
+      <button onclick="addChild()">➕ 添加孩子</button>
+    </div>
+    <div class="child-manage" style="margin-bottom:16px">`;
+  state.children.forEach(c=>{
+    html += `<span class="child-chip">${c.name} (${c.sun}☀️)
+      <span class="x" onclick="delChild('${c.id}')" ${state.children.length<=1?'style="display:none"':''}>✕</span>
+    </span>`;
+  });
+  html += `</div>
+
+    <h3 style="font-size:15px;margin-bottom:8px">📝 添加作业（当前：${child.name}）</h3>
+    <div class="form-row">
+      <select id="newTaskCat">
+        <option value="chinese">📚语文</option>
+        <option value="math">🔢数学</option>
+        <option value="english">🔤英语</option>
+        <option value="sport">⚽运动</option>
+        <option value="house">🏠家务</option>
+      </select>
+      <input type="text" id="newTaskTitle" placeholder="作业名称">
+      <input type="text" id="newTaskDesc" placeholder="描述（选填）" style="max-width:150px">
+      <select id="newTaskType">
+        <option value="normal">日常(10☀️)</option>
+        <option value="read">阅读(50☀️)</option>
+        <option value="test">小测试(20☀️)</option>
+      </select>
+      <button onclick="addTask()">➕ 添加</button>
+    </div>
+
+    <div style="margin-top:6px;font-size:12px;color:#888">
+      当前各科作业数：语文${child.tasks.chinese.length}｜数学${child.tasks.math.length}｜英语${child.tasks.english.length}｜运动${child.tasks.sport.length}｜家务${child.tasks.house.length}
+    </div>
+
+    <h3 style="font-size:15px;margin:16px 0 8px">🌐 跨设备实时同步（可选）</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:8px">
+      配置后，孩子平板与家长手机可同时打开同一链接，数据实时同步。不配置则只在当前设备使用。
+    </p>
+    <div class="form-row">
+      <input type="text" id="fbApiKey" placeholder="Firebase apiKey" style="max-width:160px">
+      <input type="text" id="fbDbUrl" placeholder="Firebase databaseURL" style="max-width:220px">
+      <input type="text" id="fbProjectId" placeholder="Firebase projectId" style="max-width:160px">
+    </div>
+    <div class="form-row">
+      <input type="text" id="syncRoom" placeholder="同步房间号（建议家庭唯一）" style="max-width:200px">
+      <button onclick="saveSyncConfig()">💾 保存并连接</button>
+      <span id="syncStatus" style="font-size:12px;color:${syncEnabled?'var(--primary)':'#888'}">${syncEnabled?'已连接':'未连接'}</span>
+    </div>
+    <details style="font-size:12px;color:#666;margin-top:6px">
+      <summary>如何获取Firebase配置？</summary>
+      <ol style="margin:6px 0 0 18px;line-height:1.6">
+        <li>访问 <a href="https://console.firebase.google.com" target="_blank">Firebase控制台</a>，创建新项目</li>
+        <li>创建一个Realtime Database，设置规则为 <code>.read</code> 和 <code>.write</code> 为 <code>true</code>（测试用）</li>
+        <li>进入项目设置 → 常规 → 您的应用，复制 Web 配置中的 apiKey、databaseURL、projectId</li>
+        <li>填入上方输入框，并设置一个房间号，所有设备使用相同房间号即可同步</li>
+      </ol>
+    </details>
+
+    <h3 style="font-size:15px;margin:16px 0 8px">🔒 修改密码</h3>
+    <div class="form-row">
+      <input type="password" id="newPwd" placeholder="新密码（4-8位数字）" maxlength="8">
+      <button onclick="changePwd()">🔐 修改</button>
+    </div>
+
+    <h3 style="font-size:15px;margin:16px 0 8px">📊 孩子数据</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <tr style="background:#E8F5E9"><th style="padding:6px;border:1px solid #A5D6A7">孩子</th><th style="padding:6px;border:1px solid #A5D6A7">阳光</th><th style="padding:6px;border:1px solid #A5D6A7">完成率</th><th style="padding:6px;border:1px solid #A5D6A7">植物</th><th style="padding:6px;border:1px solid #A5D6A7">僵尸</th><th style="padding:6px;border:1px solid #A5D6A7">连续</th></tr>`;
+  state.children.forEach(c=>{
+    html += `<tr><td style="padding:6px;border:1px solid #A5D6A7;text-align:center">${c.name}</td>
+      <td style="padding:6px;border:1px solid #A5D6A7;text-align:center">${c.sun}</td>
+      <td style="padding:6px;border:1px solid #A5D6A7;text-align:center">${getProgress(c)}%</td>
+      <td style="padding:6px;border:1px solid #A5D6A7;text-align:center">${getPlantCount(c)}</td>
+      <td style="padding:6px;border:1px solid #A5D6A7;text-align:center">${getZombieCount(c)}</td>
+      <td style="padding:6px;border:1px solid #A5D6A7;text-align:center">${c.dateStreak||0}天</td></tr>`;
+  });
+  html += `</table>
+
+    <div style="margin-top:16px">
+      <button class="danger" onclick="exitParent()">退出家长模式</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+function addChild(){
+  const name = $('newChildName').value.trim();
+  if(!name){ toast('请输入名字'); return; }
+  const c = createChild(name);
+  state.children.push(c);
+  state.currentChildId = c.id;
+  saveState();
+  render();
+  toast(`添加孩子：${name}`);
+}
+window.addChild = addChild;
+
+function delChild(id){
+  if(state.children.length<=1) return;
+  state.children = state.children.filter(c=>c.id!==id);
+  if(state.currentChildId===id) state.currentChildId = state.children[0].id;
+  saveState(); render();
+}
+window.delChild = delChild;
+
+function addTask(){
+  const child = getChild();
+  const cat = $('newTaskCat').value;
+  const title = $('newTaskTitle').value.trim();
+  const desc = $('newTaskDesc').value.trim();
+  const type = $('newTaskType').value;
+  if(!title){ toast('请输入作业名称'); return; }
+  const reward = type==='read'?50:type==='test'?20:10;
+  const icons = {chinese:'📖',math:'🔢',english:'🔤',sport:'⚽',house:'🏠'};
+  child.tasks[cat].push({icon:icons[cat],title,cat,type,reward,desc});
+  saveState();
+  $('newTaskTitle').value=''; $('newTaskDesc').value='';
+  render();
+  toast(`已添加：${title}`);
+}
+window.addTask = addTask;
+
+function changePwd(){
+  const pwd = $('newPwd').value.trim();
+  if(!/^\d{4,8}$/.test(pwd)){ toast('密码需4-8位数字'); return; }
+  state.parentPassword = pwd;
+  saveState();
+  $('newPwd').value='';
+  toast('密码已修改');
+}
+window.changePwd = changePwd;
+
+function saveSyncConfig(){
+  const cfg = {
+    apiKey: $('fbApiKey').value.trim(),
+    databaseURL: $('fbDbUrl').value.trim(),
+    projectId: $('fbProjectId').value.trim(),
+  };
+  if(!cfg.apiKey || !cfg.databaseURL || !cfg.projectId){ toast('请完整填写Firebase配置'); return; }
+  const room = $('syncRoom').value.trim();
+  if(!room){ toast('请输入同步房间号'); return; }
+  setFirebaseConfig(cfg);
+  setSyncRoom(room);
+  initFirebase();
+  saveState();
+  $('syncStatus').textContent = syncEnabled ? '已连接' : '未连接';
+  $('syncStatus').style.color = syncEnabled ? 'var(--primary)' : '#888';
+  toast(syncEnabled ? '✅ 同步已连接' : '❌ 同步连接失败，请检查配置');
+}
+window.saveSyncConfig = saveSyncConfig;
+
+function fillSyncInputs(){
+  const cfg = getFirebaseConfig();
+  if($('fbApiKey')) $('fbApiKey').value = cfg.apiKey || '';
+  if($('fbDbUrl')) $('fbDbUrl').value = cfg.databaseURL || '';
+  if($('fbProjectId')) $('fbProjectId').value = cfg.projectId || '';
+  if($('syncRoom')) $('syncRoom').value = syncRoom || '';
+}
+
+function exitParent(){
+  state.isParent = false;
+  state.currentView = 'home';
+  saveState(); render();
+}
+window.exitParent = exitParent;
+
+function bindParentPanel(){ fillSyncInputs(); }
+
+/* ---------- 密码模态框 ---------- */
+function openPwdModal(){
+  $('pwdInput').value='';
+  $('pwdModal').classList.add('show');
+  setTimeout(()=>$('pwdInput').focus(),100);
+}
+function closePwdModal(){ $('pwdModal').classList.remove('show'); }
+function checkPwd(){
+  const pwd = $('pwdInput').value.trim();
+  if(pwd === state.parentPassword){
+    state.isParent = true;
+    state.currentView = 'parent';
+    closePwdModal();
+    saveState(); render();
+    toast('✅ 进入家长模式');
+  }else{
+    toast('❌ 密码错误');
+    playError();
+    $('pwdInput').value='';
+  }
+}
+window.closePwdModal = closePwdModal;
+window.checkPwd = checkPwd;
+
+$('btnParent').onclick = ()=>{
+  if(state.isParent){
+    state.isParent = false;
+    state.currentView = 'home';
+    saveState(); render();
+  }else{
+    openPwdModal();
+  }
+};
+$('pwdInput').addEventListener('keydown',e=>{ if(e.key==='Enter') checkPwd(); });
+
+/* ========== 每日重置 & 初始化 ========== */
+function dailyCheck(){
+  const today = todayStr();
+  state.children.forEach(child=>{
+    // 简单每日处理：如果claimedToday的日期标记不匹配则清空
+    if(child.claimedToday._date !== today){
+      // 先结算昨天的僵尸和产出
+      if(child.claimedToday._date){
+        checkZombieDaily(child); // 基于昨天的完成率计算
+        dailyProduce(child);
+      }
+      child.claimedToday = {_date:today};
+    }
+  });
+  saveState();
+}
+
+/* ========== 启动 ========== */
+function init(){
+  loadState();
+  initSync();
+  dailyCheck();
+  // 确保每个孩子至少有1个僵尸（初始）
+  state.children.forEach(c=>{
+    if(c.zombies.length===0 && !c._initZombie){
+      addZombie(c);
+      c._initZombie = true;
+    }
+  });
+  saveState();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
