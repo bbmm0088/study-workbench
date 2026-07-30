@@ -175,6 +175,8 @@ body{ font-size:15px; }
 .task-item .task-reward{ font-size:12px; font-weight:bold; color:var(--accent); white-space:nowrap; }
 .task-item .btn-done{ width:42px; height:42px; border:none; border-radius:50%; background:#E0E0E0; color:#666; font-size:20px; cursor:pointer; flex-shrink:0; transition:all .2s; }
 .task-item .btn-done:hover{ background:var(--primary); color:#fff; transform:scale(1.1); }
+.task-item .btn-undo{ border:none; border-radius:8px; background:#FFF3E0; color:#FF6F00; padding:6px 8px; font-size:12px; cursor:pointer; flex-shrink:0; transition:all .2s; }
+.task-item .btn-undo:hover{ background:#FF6F00; color:#fff; }
 .task-item.done .btn-done{ background:var(--primary); color:#fff; cursor:default; }
 .task-item .btn-del{ border:none; background:transparent; color:#999; font-size:16px; cursor:pointer; padding:4px; }
 .task-item .btn-del:hover{ color:var(--danger); }
@@ -382,13 +384,13 @@ const DEFAULT_TASKS = {
 
 /* ========== 商店植物 ========== */
 const PLANTS = {
-  sunflower:{name:'向日葵',iconClass:'plant-sunflower',cost:50,desc:'每天产5阳光',atk:0,auto:true,produce:5},
-  shroom:{name:'阳光菇',iconClass:'plant-shroom',cost:25,desc:'每天产2阳光',atk:0,auto:true,produce:2},
-  peashooter:{name:'豌豆射手',iconClass:'plant-pea',cost:100,desc:'攻击僵尸',atk:10},
-  snowpea:{name:'寒冰射手',iconClass:'plant-snowpea',cost:175,desc:'减速攻击',atk:15},
-  cherry:{name:'樱桃炸弹',iconClass:'plant-cherry',cost:150,desc:'范围爆炸',atk:40},
-  wallnut:{name:'坚果墙',iconClass:'plant-wallnut',cost:50,desc:'防御植物',atk:0,hp:300},
-  firepea:{name:'火焰豌豆',iconClass:'plant-firepea',cost:150,desc:'强力攻击',atk:20},
+  sunflower:{name:'向日葵',iconClass:'plant-sunflower',cost:50,desc:'每天产生阳光5',atk:0,auto:true,produce:5},
+  shroom:{name:'阳光菇',iconClass:'plant-shroom',cost:25,desc:'每天产生阳光2',atk:0,auto:true,produce:2},
+  peashooter:{name:'豌豆射手',iconClass:'plant-pea',cost:100,desc:'每天攻击僵尸10血',atk:10},
+  snowpea:{name:'寒冰射手',iconClass:'plant-snowpea',cost:175,desc:'每天攻击僵尸15血',atk:15},
+  cherry:{name:'樱桃炸弹',iconClass:'plant-cherry',cost:150,desc:'攻击僵尸25血',atk:25},
+  wallnut:{name:'坚果墙',iconClass:'plant-wallnut',cost:50,desc:'阻挡僵尸前进1天，一天后消失',atk:0,block:true},
+  firepea:{name:'火焰豌豆',iconClass:'plant-firepea',cost:150,desc:'每天攻击僵尸20血',atk:20},
 };
 
 const EXCHANGES = [
@@ -615,9 +617,8 @@ function getProgress(child){
 function completeTask(child, t){
   const key = taskKey(t);
   if(child.claimedToday[key]) return;
-  child.claimedToday[key] = true;
   let reward = t.reward;
-  // 小测试全对额外10已在reward体现（test type默认20=10+10）
+  child.claimedToday[key] = {reward:reward, cat:t.cat, title:t.title};
   child.sun += reward;
   addLog(child, 'gain', `完成【${t.title}】`, reward);
   // 检查每日连续完成
@@ -637,6 +638,25 @@ function completeTask(child, t){
   playCoin();
   toast(`✅ 完成！+${reward}阳光 ☀️`);
 }
+
+function undoTask(cat, title){
+  const child = getChild();
+  const key = cat+'_'+title;
+  const info = child.claimedToday[key];
+  if(!info || !info.reward){ toast('该作业未完成，无法撤销'); return; }
+  const reward = info.reward;
+  child.sun -= reward;
+  delete child.claimedToday[key];
+  // 移除对应的完成日志
+  const logIdx = child.log.findIndex(l=>l.type==='gain' && l.text.includes(`【${title}】`));
+  if(logIdx>=0) child.log.splice(logIdx,1);
+  addLog(child,'spend',`撤销【${title}】（恢复阳光）`,-reward);
+  saveState();
+  playError();
+  toast(`↩️ 已撤销【${title}】，恢复${reward}阳光`);
+  render();
+}
+window.undoTask = undoTask;
 
 /* ========== 日志 ========== */
 function addLog(child, type, text, amount){
@@ -691,6 +711,19 @@ function dailyProduce(child){
   }
 }
 function checkZombieDaily(child){
+  const today = todayStr();
+  // 坚果墙一天后消失
+  for(const cellStr in child.garden){
+    const p = child.garden[cellStr];
+    const plant = PLANTS[p.plantId];
+    if(plant && plant.block){
+      if(p.placedDay !== today){
+        delete child.garden[cellStr];
+        addLog(child,'spend','坚果墙已阻挡一天后消失',0);
+      }
+    }
+  }
+
   // 每日僵尸规则：按作业类别分别计算
   for(const cat in CAT_ROWS){
     const progress = getCatProgress(child, cat);
@@ -705,11 +738,16 @@ function checkZombieDaily(child){
       catZombies = child.zombies.filter(z=>Math.floor(z.cellIdx/GARDEN_COLS)===row);
     }
 
-    // 少于50%：该类别的僵尸前进一格
+    // 少于50%：该类别的僵尸前进一格（被坚果墙阻挡则不前进）
     if(progress<50){
       catZombies.forEach(z=>{
         const col = z.cellIdx%GARDEN_COLS;
-        if(col>0) z.cellIdx = row*GARDEN_COLS + (col-1);
+        if(col>0){
+          const nextCell = row*GARDEN_COLS + (col-1);
+          const plantAtNext = child.garden[nextCell];
+          const isWall = plantAtNext && PLANTS[plantAtNext.plantId] && PLANTS[plantAtNext.plantId].block;
+          if(!isWall) z.cellIdx = nextCell;
+        }
       });
     }
 
@@ -872,8 +910,11 @@ function renderHome(child){
         <div class="task-title">${t.title}</div>
         <div class="task-meta"><span class="task-tag ${t.type}">${tagText}</span><span>${t.desc||''}</span></div>
       </div>
-      <span class="task-reward">+${t.reward}☀️</span>
-      <button class="btn-done" ${done2?'disabled':''} onclick="doTaskByKey('${t.cat}','${t.title.replace(/'/g,"\\'")}')">${done2?'✓':'√'}</button>
+      <span class="task-reward">+${t.reward}☀️</span>`;
+    if(done2){
+      html += `<button class="btn-undo" onclick="undoTask('${t.cat}','${t.title.replace(/'/g,"\\'")}')">↩️撤销</button>`;
+    }
+    html += `<button class="btn-done" ${done2?'disabled':''} onclick="doTaskByKey('${t.cat}','${t.title.replace(/'/g,"\\'")}')">${done2?'✓':'√'}</button>
     </div>`;
   });
   html += `</div></div>`;
@@ -914,8 +955,11 @@ function renderTaskList(child, cat){
           <span>${t.desc||''}</span>
         </div>
       </div>
-      <span class="task-reward">+${t.reward}☀️</span>
-      <button class="btn-done" ${done?'disabled':''} onclick="doTask(${i},'${cat}')">${done?'✓':'√'}</button>`;
+      <span class="task-reward">+${t.reward}☀️</span>`;
+    if(done){
+      html += `<button class="btn-undo" onclick="undoTask('${cat}','${t.title.replace(/'/g,"\\'")}')">↩️撤销</button>`;
+    }
+    html += `<button class="btn-done" ${done?'disabled':''} onclick="doTask(${i},'${cat}')">${done?'✓':'√'}</button>`;
     if(state.isParent) html += `<button class="btn-del" onclick="delTask('${cat}',${i})">✕</button>`;
     html += `</div>`;
   });
@@ -931,7 +975,7 @@ function renderGardenMini(child){
     let content='';
     if(plant){ content += `<span class="plant">${plantIconHTML(plant.plantId)}</span>`; }
     if(zombie){ content += `<span class="zombie">${zombieIconHTML()}</span><div class="hp-bar"><div class="hp-fill" style="width:${zombie.hp}%"></div></div>`; }
-    html += `<div class="garden-cell">${content}</div>`;
+    html += `<div class="garden-cell" onclick="handleGardenCell(${i})">${content}</div>`;
   }
   html += `</div>`;
   if(child.zombies.length>0) html += `<p style="text-align:center;color:#e53935;margin-top:6px;font-size:13px">⚠️ 有${child.zombies.length}只僵尸入侵！去商店买植物消灭它</p>`;
@@ -961,8 +1005,9 @@ function bindTasks(){ /* onclick已内联 */ }
 
 /* ---------- 花园 ---------- */
 function renderGarden(child){
+  if(!child.undoCount) child.undoCount = {};
   let html = `<div class="garden-section">
-    <h2>🌻 我的花园 <span style="font-size:13px;color:#888;margin-left:auto">点击空格子种植选中的植物</span></h2>`;
+    <h2>🌻 我的花园 <span style="font-size:13px;color:#888;margin-left:auto">点击空格子种植，点击植物可撤销</span></h2>`;
   // 植物选择条
   html += `<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">`;
   for(const pid in PLANTS){
@@ -974,23 +1019,36 @@ function renderGarden(child){
     </div>`;
   }
   html += `</div>`;
+  // 植物属性说明
+  html += `<details style="margin-bottom:8px;font-size:12px;color:#666"><summary>📖 植物属性说明</summary>
+    <div style="margin-top:6px;line-height:1.8">
+      🌻向日葵：每天产生阳光5｜🍄阳光菇：每天产生阳光2｜🟢豌豆射手：每天攻击僵尸10血<br>
+      ❄️寒冰射手：每天攻击僵尸15血｜🔥火焰豌豆：每天攻击僵尸20血<br>
+      🍒樱桃炸弹：攻击僵尸25血｜🌰坚果墙：阻挡僵尸前进1天，一天后消失
+    </div></details>`;
   html += `<div class="garden-grid">`;
   for(let i=0;i<GARDEN_COLS*GARDEN_ROWS;i++){
     const plant = child.garden[i];
     const zombie = child.zombies.find(z=>z.cellIdx===i);
     let content='';
-    if(plant) content += `<span class="plant">${plantIconHTML(plant.plantId)}</span>`;
-    if(zombie) content += `<span class="zombie">${zombieIconHTML()}</span><div class="hp-bar"><div class="hp-fill" style="width:${zombie.hp}%"></div></div>`;
+    if(plant){
+      content += `<span class="plant">${plantIconHTML(plant.plantId)}</span>`;
+    }
+    if(zombie){
+      content += `<span class="zombie">${zombieIconHTML()}</span><div class="hp-bar"><div class="hp-fill" style="width:${zombie.hp}%"></div></div>`;
+    }
     const sel = child.selectedCell===i?'selected':'';
-    html += `<div class="garden-cell ${sel}" onclick="plantHere(${i})">${content}</div>`;
+    html += `<div class="garden-cell ${sel}" onclick="handleGardenCell(${i})">${content}</div>`;
   }
   html += `</div>`;
+  // 更新花园状态按钮 + 消灭僵尸
+  html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">`;
+  html += `<button onclick="updateGarden()" style="border:none;border-radius:8px;background:var(--primary);color:#fff;padding:8px 16px;cursor:pointer;font-size:13px">🔄 更新花园状态</button>`;
   if(child.zombies.length>0){
-    html += `<div style="margin-top:8px"><button class="btn-buy" style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer" onclick="killZombieNow()">💥 花100阳光消灭一只僵尸</button></div>`;
+    html += `<button onclick="killZombieNow()" style="border:none;border-radius:8px;background:var(--danger);color:#fff;padding:8px 16px;cursor:pointer;font-size:13px">💥 花100阳光消灭一只僵尸</button>`;
   }
   html += `</div>`;
-  // 战斗按钮
-  html += `<div style="text-align:center;margin-top:8px"><button onclick="doBattle()" style="border:none;border-radius:8px;background:var(--primary);color:#fff;padding:8px 20px;font-size:14px;cursor:pointer">⚔️ 植物攻击僵尸</button></div>`;
+  html += `</div>`;
   return html;
 }
 
@@ -1006,10 +1064,24 @@ function selectPlant(pid){
 }
 window.selectPlant = selectPlant;
 
+function handleGardenCell(cellIdx){
+  const child = getChild();
+  const plant = child.garden[cellIdx];
+  const zombie = child.zombies.find(z=>z.cellIdx===cellIdx);
+  if(plant){
+    undoPlant(cellIdx);
+  } else if(zombie){
+    showZombieHp(zombie.id);
+  } else {
+    plantHere(cellIdx);
+  }
+}
+window.handleGardenCell = handleGardenCell;
+
 function plantHere(cellIdx){
   const child = getChild();
   if(child.garden[cellIdx]){
-    toast('这个格子已有植物'); return;
+    toast('这个格子已有植物，点击植物可撤销'); return;
   }
   if(!child.pendingPurchase){
     toast('请先在上方选择植物'); return;
@@ -1018,38 +1090,75 @@ function plantHere(cellIdx){
   const plant = PLANTS[pid];
   if(child.sun < plant.cost){ toast('阳光不足！'); playError(); return; }
   child.sun -= plant.cost;
-  child.garden[cellIdx] = {plantId:pid, hp:plant.hp||100, placedDay:todayStr()};
+  child.garden[cellIdx] = {plantId:pid, hp:100, placedDay:todayStr()};
   child.pendingPurchase = null;
   child.selectedCell = null;
+  if(!child.undoCount) child.undoCount = {};
+  child.undoCount[cellIdx] = 0; // 首次可免费撤销
   addLog(child,'spend',`种植${plant.name}`,-plant.cost);
   playDing();
   toast(`🌱 种植成功！${plant.name}`);
-  // 种植后立即攻击
-  plantAttack(child);
   saveState(); render();
 }
 window.plantHere = plantHere;
+
+function undoPlant(cellIdx){
+  const child = getChild();
+  const plant = child.garden[cellIdx];
+  if(!plant) return;
+  if(!child.undoCount) child.undoCount = {};
+  const count = child.undoCount[cellIdx]||0;
+  const p = PLANTS[plant.plantId];
+  if(count===0){
+    // 首次免费撤销，退还阳光
+    child.sun += p.cost;
+    delete child.garden[cellIdx];
+    child.undoCount[cellIdx] = 1;
+    addLog(child,'gain',`撤销种植${p.name}（免费）`,p.cost);
+    toast(`↩️ 已撤销${p.name}，退还${p.cost}阳光`);
+  }else{
+    // 第二次需要花10阳光
+    if(child.sun<10){ toast('阳光不足，撤销需10阳光'); playError(); return; }
+    child.sun -= 10;
+    delete child.garden[cellIdx];
+    child.undoCount[cellIdx] = count+1;
+    addLog(child,'spend',`撤销种植${p.name}（花费10阳光）`,-10);
+    toast(`↩️ 已撤销${p.name}，花费10阳光`);
+  }
+  saveState(); render();
+}
+window.undoPlant = undoPlant;
+
+function showZombieHp(zid){
+  const child = getChild();
+  const z = child.zombies.find(x=>x.id===zid);
+  if(!z) return;
+  const row = Math.floor(z.cellIdx/GARDEN_COLS);
+  const catNames = ['语文','数学','英语','运动','家务'];
+  toast(`🧟 僵尸血量：${z.hp}/100｜来自：${catNames[row]}类`);
+}
+window.showZombieHp = showZombieHp;
+
+function updateGarden(){
+  const child = getChild();
+  plantAttack(child);
+  saveState(); render();
+  if(child.zombies.length>0) toast('🔄 花园已更新');
+  else toast('🔄 花园已更新，僵尸全部消灭！');
+}
+window.updateGarden = updateGarden;
 
 function killZombieNow(){
   const child = getChild();
   if(child.zombies.length===0){ toast('没有僵尸'); return; }
   if(child.sun<100){ toast('阳光不足！需100阳光'); playError(); return; }
   child.sun -= 100;
-  const z = child.zombies.shift();
+  child.zombies.shift();
   addLog(child,'spend','消灭僵尸',-100);
   toast('💥 僵尸被消灭！');
   saveState(); render();
 }
 window.killZombieNow = killZombieNow;
-
-function doBattle(){
-  const child = getChild();
-  plantAttack(child);
-  saveState(); render();
-  if(child.zombies.length>0) toast('⚔️ 攻击完成，还有僵尸！');
-  else toast('🎉 全部僵尸被消灭！');
-}
-window.doBattle = doBattle;
 
 function bindGarden(){}
 
