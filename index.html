@@ -366,6 +366,64 @@ body{ font-size:15px; }
   </div>
 </div>
 
+<!-- 编辑奖励模态框 -->
+<div class="modal-overlay" id="editExModal">
+  <div class="modal" style="max-width:420px">
+    <h3>✏️ 编辑兑换奖励</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:10px">
+        <div style="flex:0 0 80px">
+          <label style="font-size:12px;color:#888">图标(emoji)</label>
+          <input type="text" id="editExIcon" style="width:100%;margin-top:2px;text-align:center">
+        </div>
+        <div style="flex:1">
+          <label style="font-size:12px;color:#888">奖励名称</label>
+          <input type="text" id="editExName" style="width:100%;margin-top:2px">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888">描述</label>
+        <input type="text" id="editExDesc" style="width:100%;margin-top:2px">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888">所需阳光</label>
+        <input type="number" id="editExCost" min="1" max="9999" style="width:100%;margin-top:2px">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeEditExchangeModal()">取消</button>
+      <button class="btn-ok" onclick="saveEditExchange()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑徽章模态框 -->
+<div class="modal-overlay" id="editBadgeModal">
+  <div class="modal" style="max-width:420px">
+    <h3>✏️ 编辑徽章</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:10px">
+        <div style="flex:0 0 80px">
+          <label style="font-size:12px;color:#888">图标(emoji)</label>
+          <input type="text" id="editBadgeIcon" style="width:100%;margin-top:2px;text-align:center">
+        </div>
+        <div style="flex:1">
+          <label style="font-size:12px;color:#888">徽章名称</label>
+          <input type="text" id="editBadgeName" style="width:100%;margin-top:2px">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:#888">描述</label>
+        <input type="text" id="editBadgeDesc" style="width:100%;margin-top:2px">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeEditBadgeModal()">取消</button>
+      <button class="btn-ok" onclick="saveEditBadge()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -571,7 +629,6 @@ function loadState(){
     try{ Object.assign(state, JSON.parse(raw)); }catch(e){}
   }
   if(!state.children || state.children.length===0){
-    // 初始化默认孩子
     state.children = [createChild('宝贝')];
     state.currentChildId = state.children[0].id;
     saveState();
@@ -579,6 +636,17 @@ function loadState(){
   if(!state.currentChildId && state.children.length>0){
     state.currentChildId = state.children[0].id;
   }
+  // 迁移旧数据：确保每个孩子有 exchanges/badges/badgeState
+  state.children.forEach(c=>{
+    if(!c.exchanges) c.exchanges = JSON.parse(JSON.stringify(DEFAULT_EXCHANGES));
+    if(!c.badges || c.badges.length===0 || typeof c.badges==='object' && !Array.isArray(c.badges)){
+      c.badges = JSON.parse(JSON.stringify(DEFAULT_BADGES));
+    }
+    if(!c.badgeState){
+      const oldStreak = (typeof c.badges==='object' && c.badges.streak7) || false;
+      c.badgeState = {streak7: oldStreak};
+    }
+  });
 }
 let bc = null;
 function initSync(){
@@ -602,21 +670,35 @@ function initSync(){
 }
 
 /* ========== 孩子管理 ========== */
+const DEFAULT_EXCHANGES = [
+  {id:'killZ',icon:'💥',name:'消灭僵尸',desc:'消灭一只僵尸',cost:100},
+  {id:'noWrite',icon:'🎫',name:'免写卡',desc:'免去一次作业',cost:200},
+  {id:'gameTime',icon:'🎮',name:'玩游戏30分钟',desc:'兑换游戏时间',cost:300},
+  {id:'playground',icon:'🎡',name:'游乐场一次',desc:'周末游乐场',cost:500},
+];
+const DEFAULT_BADGES = [
+  {id:'streak7',icon:'🏆',name:'连续7天全部完成',desc:'坚持就是胜利！'},
+  {id:'first10',icon:'🌱',name:'获得10阳光',desc:'初次收获'},
+  {id:'garden5',icon:'🌻',name:'种植5棵植物',desc:'小园丁'},
+  {id:'killz',icon:'⚔️',name:'消灭第一只僵尸',desc:'勇敢战士'},
+];
 function createChild(name){
   const childId = uid();
   return {
     id:childId, name:name, sun:50,
     log:[],
-    garden:{},          // {cellIdx:{plantId,hp,placedDay}}
-    zombies:[],         // [{id,cellIdx,hp}]
+    garden:{},
+    zombies:[],
     tasks:JSON.parse(JSON.stringify(DEFAULT_TASKS)),
     dateStreak:0,
     lastCompleteDate:null,
-    claimedToday:{},    // {taskKey:true}
-    badges:{streak7:false},
+    claimedToday:{},
+    badgeState:{streak7:false},
+    exchanges:JSON.parse(JSON.stringify(DEFAULT_EXCHANGES)),
+    badges:JSON.parse(JSON.stringify(DEFAULT_BADGES)),
     zombieDayCount:0,
     selectedCell:null,
-    pendingPurchase:null, // {plantId}
+    pendingPurchase:null,
   };
 }
 function getChild(){
@@ -669,7 +751,7 @@ function completeTask(child, t){
       child.dateStreak = 1;
     }
     child.lastCompleteDate = today;
-    if(child.dateStreak>=7) child.badges.streak7 = true;
+    if(child.dateStreak>=7) child.badgeState.streak7 = true;
   }
   saveState();
   playCoin();
@@ -1131,13 +1213,18 @@ function renderGarden(child){
     html += `<div class="garden-cell ${sel}" onclick="handleGardenCell(${i})">${content}</div>`;
   }
   html += `</div>`;
-  // 更新花园状态按钮 + 消灭僵尸
-  html += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">`;
-  html += `<button onclick="updateGarden()" style="border:none;border-radius:8px;background:var(--primary);color:#fff;padding:8px 16px;cursor:pointer;font-size:13px">🔄 更新花园状态</button>`;
+  // 僵尸介绍
+  html += `<details style="margin-top:8px;font-size:12px;color:#666"><summary>🧟 僵尸介绍</summary>
+    <div style="margin-top:6px;line-height:1.8">
+      🧟 <b>普通僵尸</b>：初始血量100，出现在对应作业类别的行<br>
+      📌 <b>出现规则</b>：某类作业有未完成项时，该类出现僵尸<br>
+      ⚔️ <b>僵尸行动</b>：完成率&lt;50%前进一格，&lt;30%增加一只，≥80%不活动<br>
+      🌰 <b>坚果墙</b>：可阻挡僵尸前进1天<br>
+      💥 <b>消灭方式</b>：植物攻击或花100阳光直接消灭
+    </div></details>`;
   if(child.zombies.length>0){
-    html += `<button onclick="killZombieNow()" style="border:none;border-radius:8px;background:var(--danger);color:#fff;padding:8px 16px;cursor:pointer;font-size:13px">💥 花100阳光消灭一只僵尸</button>`;
+    html += `<div style="margin-top:8px"><button onclick="killZombieNow()" style="border:none;border-radius:8px;background:var(--danger);color:#fff;padding:8px 16px;cursor:pointer;font-size:13px">💥 花100阳光消灭一只僵尸</button></div>`;
   }
-  html += `</div>`;
   html += `</div>`;
   return html;
 }
@@ -1273,16 +1360,25 @@ function renderShop(child){
   html += `</div>
     <h3 style="font-size:15px;margin:14px 0 6px">🎁 兑换奖励</h3>
     <div class="shop-grid">`;
-  EXCHANGES.forEach(e=>{
+  const exList = child.exchanges || JSON.parse(JSON.stringify(DEFAULT_EXCHANGES));
+  exList.forEach((e,ei)=>{
     const can = child.sun>=e.cost;
     html += `<div class="shop-item">
       <div class="shop-icon">${e.icon}</div>
       <div class="shop-name">${e.name}</div>
       <div class="shop-desc">${e.desc}</div>
       <div class="shop-cost">${e.cost}☀️</div>
-      <button class="btn-buy" ${can?'':'disabled'} onclick="exchange('${e.id}','${e.name}',${e.cost})">兑换</button>
-    </div>`;
+      <button class="btn-buy" ${can?'':'disabled'} onclick="exchange(${ei},'${e.id}','${e.name.replace(/'/g,"\\'")}',${e.cost})">兑换</button>`;
+    if(state.isParent){
+      html += `<div style="display:flex;gap:4px;margin-top:4px"><button class="btn-edit" style="font-size:14px" onclick="editExchange(${ei})">✏️</button><button class="btn-del" style="font-size:14px" onclick="delExchange(${ei})">✕</button></div>`;
+    }
+    html += `</div>`;
   });
+  if(state.isParent){
+    html += `<div class="shop-item" style="border:2px dashed #A5D6A7;display:flex;align-items:center;justify-content:center">
+      <button onclick="addExchange()" style="border:none;background:transparent;color:var(--primary);font-size:14px;cursor:pointer;font-weight:bold">➕ 添加奖励</button>
+    </div>`;
+  }
   html += `</div></div>`;
   return html;
 }
@@ -1297,7 +1393,7 @@ function buyPlant(pid){
 }
 window.buyPlant = buyPlant;
 
-function exchange(id,name,cost){
+function exchange(ei, id, name, cost){
   const child = getChild();
   if(child.sun<cost){ toast('阳光不足！'); playError(); return; }
   if(id==='killZ' && child.zombies.length===0){ toast('没有僵尸可以消灭'); playError(); return; }
@@ -1314,29 +1410,84 @@ function exchange(id,name,cost){
 }
 window.exchange = exchange;
 
+let editingExchange = null;
+function addExchange(){
+  const child = getChild();
+  if(!child.exchanges) child.exchanges = JSON.parse(JSON.stringify(DEFAULT_EXCHANGES));
+  const newE = {id:uid(), icon:'🎁', name:'新奖励', desc:'请编辑描述', cost:100};
+  child.exchanges.push(newE);
+  saveState();
+  editExchange(child.exchanges.length-1);
+}
+window.addExchange = addExchange;
+
+function editExchange(ei){
+  const child = getChild();
+  const e = (child.exchanges||[])[ei];
+  if(!e) return;
+  editingExchange = ei;
+  $('editExIcon').value = e.icon;
+  $('editExName').value = e.name;
+  $('editExDesc').value = e.desc;
+  $('editExCost').value = e.cost;
+  $('editExModal').classList.add('show');
+}
+window.editExchange = editExchange;
+
+function closeEditExchangeModal(){ $('editExModal').classList.remove('show'); editingExchange=null; }
+window.closeEditExchangeModal = closeEditExchangeModal;
+
+function saveEditExchange(){
+  if(editingExchange===null) return;
+  const child = getChild();
+  const e = child.exchanges[editingExchange];
+  if(!e){ closeEditExchangeModal(); return; }
+  e.icon = $('editExIcon').value.trim() || '🎁';
+  e.name = $('editExName').value.trim() || '奖励';
+  e.desc = $('editExDesc').value.trim();
+  e.cost = parseInt($('editExCost').value)||100;
+  saveState();
+  closeEditExchangeModal();
+  render();
+  toast('✏️ 奖励已修改');
+}
+window.saveEditExchange = saveEditExchange;
+
+function delExchange(ei){
+  const child = getChild();
+  if(!child.exchanges) return;
+  child.exchanges.splice(ei,1);
+  saveState(); render();
+  toast('已删除奖励');
+}
+window.delExchange = delExchange;
+
 function bindShop(){}
 
 /* ---------- 徽章 ---------- */
 function renderBadges(child){
-  const badges = [
-    {id:'streak7',icon:'🏆',name:'连续7天\n全部完成',desc:'坚持就是胜利！'},
-    {id:'first10',icon:'🌱',name:'获得10\n阳光',desc:'初次收获'},
-    {id:'garden5',icon:'🌻',name:'种植5棵\n植物',desc:'小园丁'},
-    {id:'killz',icon:'⚔️',name:'消灭第一\n只僵尸',desc:'勇敢战士'},
-  ];
+  if(!child.badges || child.badges.length===0) child.badges = JSON.parse(JSON.stringify(DEFAULT_BADGES));
+  if(!child.badgeState) child.badgeState = {streak7:false};
+  const badges = child.badges;
   let html = `<div class="task-section"><h2>🏅 成就徽章</h2>
     <div class="badge-grid">`;
-  badges.forEach(b=>{
+  badges.forEach((b,bi)=>{
     let unlocked = false;
-    if(b.id==='streak7') unlocked = child.badges.streak7;
-    if(b.id==='first10') unlocked = true; // 默认已有阳光
-    if(b.id==='garden5') unlocked = getPlantCount(child)>=5;
-    if(b.id==='killz') unlocked = child.log.some(l=>l.text.includes('消灭僵尸'));
+    if(b.id==='streak7') unlocked = !!child.badgeState.streak7;
+    else if(b.id==='first10') unlocked = true;
+    else if(b.id==='garden5') unlocked = getPlantCount(child)>=5;
+    else if(b.id==='killz') unlocked = child.log.some(l=>l.text.includes('消灭僵尸'));
     html += `<div class="badge-item ${unlocked?'':'locked'}">
       <span class="b-icon">${b.icon}</span>
-      <span>${b.name}</span>
-    </div>`;
+      <span>${b.name}</span>`;
+    if(state.isParent){
+      html += `<div style="display:flex;gap:4px;margin-top:2px"><button class="btn-edit" style="font-size:14px" onclick="editBadge(${bi})">✏️</button><button class="btn-del" style="font-size:14px" onclick="delBadge(${bi})">✕</button></div>`;
+    }
+    html += `</div>`;
   });
+  if(state.isParent){
+    html += `<div class="badge-item" style="background:radial-gradient(circle at 30% 30%,#E8F5E9,#A5D6A7);border:3px dashed #66BB6A;cursor:pointer" onclick="addBadge()"><span class="b-icon">➕</span><span>添加徽章</span></div>`;
+  }
   html += `</div>`;
   // 连续天数
   html += `<div style="margin-top:14px;text-align:center;font-size:16px">📅 连续完成天数：<b style="color:var(--accent);font-size:22px">${child.dateStreak||0}</b> 天</div>`;
@@ -1344,6 +1495,57 @@ function renderBadges(child){
   html += `</div>`;
   return html;
 }
+
+/* ---------- 徽章编辑 ---------- */
+let editingBadge = null;
+function addBadge(){
+  const child = getChild();
+  if(!child.badges || child.badges.length===0) child.badges = JSON.parse(JSON.stringify(DEFAULT_BADGES));
+  const newB = {id:uid(), icon:'🏅', name:'新徽章', desc:'请编辑描述'};
+  child.badges.push(newB);
+  saveState();
+  editBadge(child.badges.length-1);
+}
+window.addBadge = addBadge;
+
+function editBadge(bi){
+  const child = getChild();
+  const b = (child.badges||[])[bi];
+  if(!b) return;
+  editingBadge = bi;
+  $('editBadgeIcon').value = b.icon;
+  $('editBadgeName').value = b.name;
+  $('editBadgeDesc').value = b.desc;
+  $('editBadgeModal').classList.add('show');
+}
+window.editBadge = editBadge;
+
+function closeEditBadgeModal(){ $('editBadgeModal').classList.remove('show'); editingBadge=null; }
+window.closeEditBadgeModal = closeEditBadgeModal;
+
+function saveEditBadge(){
+  if(editingBadge===null) return;
+  const child = getChild();
+  const b = child.badges[editingBadge];
+  if(!b){ closeEditBadgeModal(); return; }
+  b.icon = $('editBadgeIcon').value.trim() || '🏅';
+  b.name = $('editBadgeName').value.trim() || '徽章';
+  b.desc = $('editBadgeDesc').value.trim();
+  saveState();
+  closeEditBadgeModal();
+  render();
+  toast('✏️ 徽章已修改');
+}
+window.saveEditBadge = saveEditBadge;
+
+function delBadge(bi){
+  const child = getChild();
+  if(!child.badges) return;
+  child.badges.splice(bi,1);
+  saveState(); render();
+  toast('已删除徽章');
+}
+window.delBadge = delBadge;
 
 /* ---------- 日志 ---------- */
 function renderLog(child){
